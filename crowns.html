@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Crowns - Puzzle Game</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -160,6 +160,7 @@
     padding: 16px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.08);
     position: relative;
+    touch-action: none;
   }
 
   .board {
@@ -316,7 +317,7 @@
 <p class="instructions">
   Posiziona esattamente una corona <strong>♛</strong> per ogni regione colorata.
   Le corone non possono trovarsi nella stessa riga, colonna, o in celle adiacenti (incluse le diagonali).<br>
-  <strong>Tap</strong> per segnare/rimuovere una ✕ · <strong>Doppio tap</strong> per piazzare/rimuovere una corona.
+  <strong>Tap</strong> o <strong>trascina</strong> per segnare/rimuovere le ✕ · <strong>Doppio tap</strong> per piazzare/rimuovere una corona.
 </p>
 
 <div class="overlay" id="overlay">
@@ -566,6 +567,7 @@ let bestTimes = progress.bestTimes;
 
 // ─── DOM refs ───────────────────────────────────────────────────
 const boardEl = document.getElementById('board');
+const boardContainer = document.getElementById('boardContainer');
 const timerEl = document.getElementById('timer');
 const messageEl = document.getElementById('message');
 const overlayEl = document.getElementById('overlay');
@@ -686,8 +688,6 @@ function renderBoard() {
       if (c === 0 || regions[r][c-1] !== region) cell.classList.add('border-left');
       if (c === size-1 || regions[r][c+1] !== region) cell.classList.add('border-right');
 
-      cell.addEventListener('click', () => onCellClick(r, c));
-
       boardEl.appendChild(cell);
     }
   }
@@ -695,13 +695,111 @@ function renderBoard() {
   updateVisuals();
 }
 
-// ─── Cell Interaction (tap = X mark, double-tap = queen) ────────
+// ─── Cell Interaction ────────────────────────────────────────────
+// Tap = toggle X mark, double-tap = toggle queen, drag = paint X marks
 let lastTapTime = 0;
 let lastTapRow = -1;
 let lastTapCol = -1;
 let tapTimeout = null;
+let isDragging = false;
+let dragStartCell = null;   // {row, col} of the cell where pointer went down
+let dragMoved = false;       // did the pointer move to a different cell?
+let dragMode = null;         // 'add' or 'remove' — decided by first cell's state
+let dragBatch = [];          // cells affected during this drag for undo grouping
 
-function onCellClick(row, col) {
+function getCellFromPoint(x, y) {
+  const el = document.elementFromPoint(x, y);
+  if (!el) return null;
+  const cell = el.closest('.cell');
+  if (!cell) return null;
+  return { row: parseInt(cell.dataset.row), col: parseInt(cell.dataset.col) };
+}
+
+boardContainer.addEventListener('pointerdown', onPointerDown);
+boardContainer.addEventListener('pointermove', onPointerMove);
+boardContainer.addEventListener('pointerup', onPointerUp);
+boardContainer.addEventListener('pointerleave', onPointerUp);
+
+function onPointerDown(e) {
+  if (solved) return;
+  const cell = getCellFromPoint(e.clientX, e.clientY);
+  if (!cell) return;
+  e.preventDefault();
+
+  isDragging = true;
+  dragMoved = false;
+  dragStartCell = cell;
+  dragBatch = [];
+
+  // Decide drag mode based on first cell: if it has no mark, we'll add marks; if it has one, we'll remove
+  const key = `${cell.row},${cell.col}`;
+  const hasQueen = placedQueens.some(q => q.row === cell.row && q.col === cell.col);
+  if (hasQueen) {
+    // Don't drag on queen cells
+    dragMode = null;
+  } else if (manualMarks.has(key)) {
+    dragMode = 'remove';
+  } else {
+    dragMode = 'add';
+  }
+}
+
+function onPointerMove(e) {
+  if (!isDragging || solved || dragMode === null) return;
+  e.preventDefault();
+  const cell = getCellFromPoint(e.clientX, e.clientY);
+  if (!cell) return;
+
+  // Did we move to a different cell than where we started?
+  if (cell.row !== dragStartCell.row || cell.col !== dragStartCell.col) {
+    dragMoved = true;
+  }
+
+  // If we've moved, apply mark to the start cell too (on first move)
+  if (dragMoved && dragBatch.length === 0) {
+    applyDragMark(dragStartCell.row, dragStartCell.col);
+  }
+
+  applyDragMark(cell.row, cell.col);
+}
+
+function applyDragMark(row, col) {
+  const key = `${row},${col}`;
+  // Skip cells with queens
+  if (placedQueens.some(q => q.row === row && q.col === col)) return;
+  // Skip already processed cells in this drag
+  if (dragBatch.some(b => b.row === row && b.col === col)) return;
+
+  if (dragMode === 'add' && !manualMarks.has(key)) {
+    manualMarks.add(key);
+    dragBatch.push({ row, col });
+    if (!timerRunning) startTimer();
+    updateVisuals();
+  } else if (dragMode === 'remove' && manualMarks.has(key)) {
+    manualMarks.delete(key);
+    dragBatch.push({ row, col });
+    updateVisuals();
+  }
+}
+
+function onPointerUp(e) {
+  if (!isDragging) return;
+  isDragging = false;
+
+  if (dragMoved && dragBatch.length > 0) {
+    // Drag completed: save batch as single undo entry
+    moveHistory.push({ type: dragMode === 'add' ? 'placeBatch' : 'removeBatch', cells: [...dragBatch] });
+  } else if (!dragMoved && dragStartCell) {
+    // No drag: treat as tap (with double-tap detection)
+    handleTap(dragStartCell.row, dragStartCell.col);
+  }
+
+  dragStartCell = null;
+  dragMode = null;
+  dragBatch = [];
+}
+
+function handleTap(row, col) {
   if (solved) return;
 
   const now = Date.now();
@@ -712,11 +810,9 @@ function onCellClick(row, col) {
   lastTapCol = col;
 
   if (isDoubleTap) {
-    // Double tap: place or remove queen
     clearTimeout(tapTimeout);
     handleQueenToggle(row, col);
   } else {
-    // Single tap: delayed to distinguish from double tap
     clearTimeout(tapTimeout);
     tapTimeout = setTimeout(() => {
       handleMarkToggle(row, col);
@@ -729,11 +825,9 @@ function handleQueenToggle(row, col) {
   const existingIdx = placedQueens.findIndex(q => q.row === row && q.col === col);
 
   if (existingIdx >= 0) {
-    // Remove queen
     placedQueens.splice(existingIdx, 1);
     moveHistory.push({ type: 'removeQueen', row, col });
   } else {
-    // Remove mark if present, then place queen
     if (manualMarks.has(key)) {
       manualMarks.delete(key);
     }
@@ -750,7 +844,6 @@ function handleQueenToggle(row, col) {
 }
 
 function handleMarkToggle(row, col) {
-  // Don't toggle mark on cells that have a queen
   const existingIdx = placedQueens.findIndex(q => q.row === row && q.col === col);
   if (existingIdx >= 0) return;
 
@@ -898,7 +991,6 @@ function undo() {
   if (moveHistory.length === 0 || solved) return;
 
   const lastMove = moveHistory.pop();
-  const key = `${lastMove.row},${lastMove.col}`;
 
   switch (lastMove.type) {
     case 'placeQueen': {
@@ -910,10 +1002,16 @@ function undo() {
       placedQueens.push({ row: lastMove.row, col: lastMove.col });
       break;
     case 'placeMark':
-      manualMarks.delete(key);
+      manualMarks.delete(`${lastMove.row},${lastMove.col}`);
       break;
     case 'removeMark':
-      manualMarks.add(key);
+      manualMarks.add(`${lastMove.row},${lastMove.col}`);
+      break;
+    case 'placeBatch':
+      for (const c of lastMove.cells) manualMarks.delete(`${c.row},${c.col}`);
+      break;
+    case 'removeBatch':
+      for (const c of lastMove.cells) manualMarks.add(`${c.row},${c.col}`);
       break;
   }
 
