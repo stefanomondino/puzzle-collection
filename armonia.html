@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Armonia - Puzzle Game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #faf8f5;
+    --card: #ffffff;
+    --primary: #6C5CE7;
+    --primary-light: #e8e4fd;
+    --text: #2d2d2d;
+    --text-muted: #777777;
+    --success: #00b894;
+    --cell-size: 60px;
+    --pizza-color: #E17055;
+    --ananas-color: #FDCB6E;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  header {
+    width: 100%;
+    max-width: 500px;
+    padding: 16px 20px 8px;
+    text-align: center;
+    position: relative;
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--primary);
+    text-transform: uppercase;
+  }
+
+  header p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 20px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .timer {
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    min-width: 70px;
+    text-align: center;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn:active { transform: scale(0.95); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+  }
+
+  .btn-outline:hover { background: var(--primary-light); }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #5a4bd6; }
+
+  .level-selector {
+    display: flex;
+    gap: 6px;
+    padding: 4px 20px 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 500px;
+  }
+
+  .level-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #d9d9d9;
+    background: var(--card);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text);
+  }
+
+  .level-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+
+  .level-btn.completed {
+    border-color: var(--success);
+    color: var(--success);
+    position: relative;
+  }
+
+  .level-btn.completed::after {
+    content: '\2713';
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    font-size: 10px;
+    background: var(--success);
+    color: #fff;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .level-btn.completed.active {
+    background: var(--success);
+    color: #fff;
+  }
+
+  .board-container {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    position: relative;
+    touch-action: none;
+  }
+
+  .board {
+    display: grid;
+    gap: 0;
+    position: relative;
+  }
+
+  .cell-wrapper {
+    position: relative;
+    width: var(--cell-size);
+    height: var(--cell-size);
+  }
+
+  .cell {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    border: 1px solid #e0ddd8;
+    background: #fdfcfa;
+  }
+
+  .cell:active { filter: brightness(0.92); }
+
+  .cell.given {
+    background: #f0eee8;
+  }
+
+  .cell.pizza {
+    background: #FFEEE8;
+  }
+
+  .cell.ananas {
+    background: #FFF8E0;
+  }
+
+  .cell.given.pizza {
+    background: #FFD9CC;
+  }
+
+  .cell.given.ananas {
+    background: #FFECB3;
+  }
+
+  .cell.conflict {
+    box-shadow: inset 0 0 0 3px rgba(198,40,40,0.5);
+  }
+
+  .symbol {
+    font-size: calc(var(--cell-size) * 0.45);
+    line-height: 1;
+    z-index: 2;
+  }
+
+  /* Constraint indicators between cells */
+  .constraint {
+    position: absolute;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .constraint-h {
+    width: 24px;
+    height: 24px;
+    right: -13px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .constraint-v {
+    width: 24px;
+    height: 24px;
+    bottom: -13px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .constraint-badge {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 2px solid #888;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #555;
+    line-height: 1;
+  }
+
+  .message {
+    margin-top: 16px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .message.visible { opacity: 1; }
+  .message.success { background: #e8f5e9; color: var(--success); }
+
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .overlay.visible { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px;
+    max-width: 340px;
+    width: 90%;
+    text-align: center;
+    animation: pop 0.3s ease;
+  }
+
+  @keyframes pop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .modal h2 { font-size: 24px; margin-bottom: 8px; color: var(--success); }
+  .modal p { color: var(--text-muted); margin-bottom: 20px; }
+  .modal .time { font-size: 36px; font-weight: 700; color: var(--text); margin: 8px 0; }
+
+  .instructions {
+    max-width: 500px;
+    padding: 12px 20px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 420px) {
+    :root { --cell-size: 50px; }
+  }
+
+  @media (max-width: 350px) {
+    :root { --cell-size: 44px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" style="position:absolute;left:16px;top:16px;color:var(--primary);text-decoration:none;font-size:18px;font-weight:600;">&larr; Menu</a>
+  <h1>Armonia</h1>
+  <p>Bilancia pizze e ananas nella griglia</p>
+  <p id="stats" style="font-size:12px;color:var(--text-muted);margin-top:4px;"></p>
+</header>
+
+<div class="toolbar">
+  <button class="btn btn-outline" id="btnUndo">&hookleftarrow; Annulla</button>
+  <div class="timer" id="timer">0:00</div>
+  <button class="btn btn-outline" id="btnReset">&#10227; Reset</button>
+</div>
+
+<div class="toolbar" style="padding-top:0">
+  <button class="btn btn-primary" id="btnNewGame" style="font-size:13px; padding: 6px 14px;">Nuovo puzzle</button>
+</div>
+
+<div class="level-selector" id="levelSelector"></div>
+
+<div class="board-container" id="boardContainer">
+  <div class="board" id="board"></div>
+</div>
+
+<div class="message" id="message"></div>
+
+<p class="instructions">
+  Riempi la griglia con <strong style="color:var(--pizza-color);">Pizze</strong> e <strong style="color:var(--ananas-color);">Ananas</strong>.<br>
+  Non pi&ugrave; di due simboli uguali consecutivi. Stesso numero di pizze e ananas per riga e colonna.<br>
+  <strong>=</strong> indica celle uguali &middot; <strong>&times;</strong> indica celle diverse.<br>
+  <strong>Tap</strong> per piazzare pizza &rarr; ananas &rarr; vuoto.
+</p>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">Completato!</h2>
+    <div class="time" id="modalTime">0:00</div>
+    <p id="modalMsg">Hai risolto il puzzle!</p>
+    <button class="btn btn-primary" id="btnNext" style="margin-top:8px;">Livello successivo &rarr;</button>
+  </div>
+</div>
+
+<script>
+// ─── Seeded PRNG (Mulberry32) ───────────────────────────────────
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function shuffleArray(arr, rng) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ─── Constants ──────────────────────────────────────────────────
+const SUN = 1;
+const MOON = 2;
+const EMPTY = 0;
+
+// ─── Board Generation ───────────────────────────────────────────
+// Generate a valid completed board (no three in a row, balanced rows/cols)
+function generateSolution(size, rng) {
+  const board = Array.from({length: size}, () => new Array(size).fill(EMPTY));
+  const half = size / 2;
+
+  function isValid(board, row, col, val) {
+    // Check three-in-a-row horizontally
+    if (col >= 2 && board[row][col-1] === val && board[row][col-2] === val) return false;
+    // Check three-in-a-row vertically
+    if (row >= 2 && board[row-1][col] === val && board[row-2][col] === val) return false;
+
+    // Count in row
+    let rowCount = 0;
+    for (let c = 0; c < size; c++) {
+      if (c === col) continue;
+      if (board[row][c] === val) rowCount++;
+    }
+    if (rowCount >= half) return false;
+
+    // Count in column
+    let colCount = 0;
+    for (let r = 0; r < size; r++) {
+      if (r === row) continue;
+      if (board[r][col] === val) colCount++;
+    }
+    if (colCount >= half) return false;
+
+    return true;
+  }
+
+  function solve(pos) {
+    if (pos === size * size) return true;
+    const row = Math.floor(pos / size);
+    const col = pos % size;
+
+    const order = rng() < 0.5 ? [SUN, MOON] : [MOON, SUN];
+    for (const val of order) {
+      if (isValid(board, row, col, val)) {
+        board[row][col] = val;
+        if (solve(pos + 1)) return true;
+        board[row][col] = EMPTY;
+      }
+    }
+    return false;
+  }
+
+  if (!solve(0)) return null;
+  return board;
+}
+
+// ─── Constraint Generation ──────────────────────────────────────
+// Place "=" and "x" constraints between adjacent cells
+function generateConstraints(solution, size, numConstraints, rng) {
+  const candidates = [];
+
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      // Horizontal
+      if (c < size - 1) {
+        candidates.push({
+          r1: r, c1: c, r2: r, c2: c + 1, dir: 'h',
+          type: solution[r][c] === solution[r][c+1] ? '=' : 'x'
+        });
+      }
+      // Vertical
+      if (r < size - 1) {
+        candidates.push({
+          r1: r, c1: c, r2: r + 1, c2: c, dir: 'v',
+          type: solution[r][c] === solution[r+1][c] ? '=' : 'x'
+        });
+      }
+    }
+  }
+
+  shuffleArray(candidates, rng);
+  return candidates.slice(0, Math.min(numConstraints, candidates.length));
+}
+
+// ─── Puzzle Solver (for uniqueness check) ───────────────────────
+function solvePuzzle(size, givens, constraints, maxSolutions) {
+  const board = Array.from({length: size}, () => new Array(size).fill(EMPTY));
+  const half = size / 2;
+
+  // Place givens
+  for (const g of givens) {
+    board[g.row][g.col] = g.val;
+  }
+
+  const givenSet = new Set(givens.map(g => `${g.row},${g.col}`));
+
+  function isValidPlacement(row, col, val) {
+    // Three-in-a-row horizontally
+    if (col >= 2 && board[row][col-1] === val && board[row][col-2] === val) return false;
+    if (col >= 1 && col < size - 1 && board[row][col-1] === val && board[row][col+1] === val) return false;
+    if (col < size - 2 && board[row][col+1] === val && board[row][col+2] === val) return false;
+
+    // Three-in-a-row vertically
+    if (row >= 2 && board[row-1][col] === val && board[row-2][col] === val) return false;
+    if (row >= 1 && row < size - 1 && board[row-1][col] === val && board[row+1][col] === val) return false;
+    if (row < size - 2 && board[row+1][col] === val && board[row+2][col] === val) return false;
+
+    // Count in row
+    let rowCount = 0;
+    for (let c = 0; c < size; c++) {
+      if (c === col) continue;
+      if (board[row][c] === val) rowCount++;
+    }
+    if (rowCount >= half) return false;
+
+    // Count in column
+    let colCount = 0;
+    for (let r = 0; r < size; r++) {
+      if (r === row) continue;
+      if (board[r][col] === val) colCount++;
+    }
+    if (colCount >= half) return false;
+
+    // Check constraints involving this cell
+    for (const con of constraints) {
+      if (con.r1 === row && con.c1 === col && board[con.r2][con.c2] !== EMPTY) {
+        if (con.type === '=' && val !== board[con.r2][con.c2]) return false;
+        if (con.type === 'x' && val === board[con.r2][con.c2]) return false;
+      }
+      if (con.r2 === row && con.c2 === col && board[con.r1][con.c1] !== EMPTY) {
+        if (con.type === '=' && val !== board[con.r1][con.c1]) return false;
+        if (con.type === 'x' && val === board[con.r1][con.c1]) return false;
+      }
+    }
+
+    return true;
+  }
+
+  // Find empty cells to fill
+  const emptyCells = [];
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (!givenSet.has(`${r},${c}`)) emptyCells.push({row: r, col: c});
+    }
+  }
+
+  let solutionCount = 0;
+
+  function solve(idx) {
+    if (idx === emptyCells.length) {
+      solutionCount++;
+      return solutionCount >= maxSolutions;
+    }
+    const {row, col} = emptyCells[idx];
+    for (const val of [SUN, MOON]) {
+      if (isValidPlacement(row, col, val)) {
+        board[row][col] = val;
+        if (solve(idx + 1)) return true;
+        board[row][col] = EMPTY;
+      }
+    }
+    return false;
+  }
+
+  solve(0);
+  return solutionCount;
+}
+
+// ─── Puzzle Generator ───────────────────────────────────────────
+function generatePuzzle(size, seed) {
+  const rng = mulberry32(seed);
+  const solution = generateSolution(size, rng);
+  if (!solution) return null;
+
+  // Determine number of constraints based on size
+  const numConstraints = size === 6 ? Math.floor(rng() * 3) + 4 :
+                         size === 8 ? Math.floor(rng() * 4) + 5 :
+                                      Math.floor(rng() * 4) + 6;
+
+  const constraints = generateConstraints(solution, size, numConstraints, rng);
+
+  // Create list of all cells, pick givens
+  const allCells = [];
+  for (let r = 0; r < size; r++)
+    for (let c = 0; c < size; c++)
+      allCells.push({row: r, col: c});
+
+  shuffleArray(allCells, rng);
+
+  // Start with some givens, try to remove cells while maintaining uniqueness
+  const numInitialGivens = size === 6 ? Math.floor(rng() * 3) + 6 :
+                           size === 8 ? Math.floor(rng() * 4) + 10 :
+                                        Math.floor(rng() * 5) + 16;
+
+  const givens = allCells.slice(0, numInitialGivens).map(c => ({
+    row: c.row, col: c.col, val: solution[c.row][c.col]
+  }));
+
+  // Verify uniqueness
+  const count = solvePuzzle(size, givens, constraints, 2);
+  if (count !== 1) return null;
+
+  return { size, solution, constraints, givens };
+}
+
+// ─── Level Configs (50 levels) ──────────────────────────────────
+const LEVEL_CONFIGS = [];
+(function buildConfigs() {
+  for (let i = 0; i < 20; i++) LEVEL_CONFIGS.push({ size: 6 });
+  for (let i = 0; i < 15; i++) LEVEL_CONFIGS.push({ size: 8 });
+  for (let i = 0; i < 15; i++) LEVEL_CONFIGS.push({ size: 10 });
+})();
+
+// Pre-computed seeds that produce unique-solution puzzles
+const PUZZLE_SEEDS = [];
+(function findSeeds() {
+  for (let i = 0; i < 50; i++) {
+    let seed = 2000 + i * 197;
+    PUZZLE_SEEDS.push(seed);
+  }
+})();
+
+const puzzleCache = {};
+function getPuzzle(index) {
+  if (puzzleCache[index]) return puzzleCache[index];
+  const cfg = LEVEL_CONFIGS[index];
+  let seed = PUZZLE_SEEDS[index];
+  let puzzle = null;
+  let attempts = 0;
+  while (!puzzle && attempts < 2000) {
+    puzzle = generatePuzzle(cfg.size, seed);
+    if (!puzzle) seed++;
+    attempts++;
+  }
+  if (puzzle) {
+    PUZZLE_SEEDS[index] = seed; // store the working seed
+    puzzleCache[index] = puzzle;
+  }
+  return puzzle;
+}
+
+// ─── Persistence (localStorage) ─────────────────────────────────
+const STORAGE_KEY = 'armonia_progress';
+function loadProgress() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (data && data.completed) return { completed: new Set(data.completed), bestTimes: data.bestTimes || {} };
+  } catch(e) {}
+  return { completed: new Set(), bestTimes: {} };
+}
+function saveProgress() {
+  const data = { completed: [...completedLevels], bestTimes };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+const progress = loadProgress();
+
+// ─── Game State ─────────────────────────────────────────────────
+let currentLevel = 0;
+let puzzle = null;
+let board = [];       // current board state: 2D array of EMPTY/SUN/MOON
+let givenSet = null;  // set of "row,col" for given cells
+let moveHistory = [];
+let timerInterval = null;
+let startTime = 0;
+let elapsed = 0;
+let timerRunning = false;
+let solved = false;
+let completedLevels = progress.completed;
+let bestTimes = progress.bestTimes;
+
+// ─── DOM refs ───────────────────────────────────────────────────
+const boardEl = document.getElementById('board');
+const boardContainer = document.getElementById('boardContainer');
+const timerEl = document.getElementById('timer');
+const messageEl = document.getElementById('message');
+const overlayEl = document.getElementById('overlay');
+const levelSelectorEl = document.getElementById('levelSelector');
+
+// ─── Level selector (paginated, 10 per page) ───────────────────
+const LEVELS_PER_PAGE = 10;
+let currentPage = 0;
+
+function buildLevelSelector() {
+  levelSelectorEl.innerHTML = '';
+  const totalPages = Math.ceil(LEVEL_CONFIGS.length / LEVELS_PER_PAGE);
+  currentPage = Math.floor(currentLevel / LEVELS_PER_PAGE);
+
+  if (totalPages > 1) {
+    const nav = document.createElement('div');
+    nav.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;justify-content:center;margin-bottom:6px;';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'btn btn-outline';
+    prevBtn.style.cssText = 'padding:4px 10px;font-size:12px;min-width:auto;';
+    prevBtn.textContent = '\u25C0';
+    prevBtn.disabled = currentPage === 0;
+    prevBtn.addEventListener('click', () => { currentPage = Math.max(0, currentPage - 1); buildLevelButtons(); });
+
+    const label = document.createElement('span');
+    label.style.cssText = 'font-size:12px;color:var(--text-muted);min-width:60px;text-align:center;';
+    label.textContent = `${currentPage * LEVELS_PER_PAGE + 1}\u2013${Math.min((currentPage + 1) * LEVELS_PER_PAGE, LEVEL_CONFIGS.length)}`;
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn btn-outline';
+    nextBtn.style.cssText = 'padding:4px 10px;font-size:12px;min-width:auto;';
+    nextBtn.textContent = '\u25B6';
+    nextBtn.disabled = currentPage >= totalPages - 1;
+    nextBtn.addEventListener('click', () => { currentPage = Math.min(totalPages - 1, currentPage + 1); buildLevelButtons(); });
+
+    nav.appendChild(prevBtn);
+    nav.appendChild(label);
+    nav.appendChild(nextBtn);
+    levelSelectorEl.appendChild(nav);
+  }
+
+  buildLevelButtons();
+  document.getElementById('stats').textContent = `Completati: ${completedLevels.size}/${LEVEL_CONFIGS.length}`;
+}
+
+function buildLevelButtons() {
+  const nav = levelSelectorEl.querySelector('div');
+  const existingBtns = levelSelectorEl.querySelectorAll('.level-btn');
+  existingBtns.forEach(b => b.remove());
+
+  if (nav) {
+    const label = nav.querySelector('span');
+    if (label) label.textContent = `${currentPage * LEVELS_PER_PAGE + 1}\u2013${Math.min((currentPage + 1) * LEVELS_PER_PAGE, LEVEL_CONFIGS.length)}`;
+    const btns = nav.querySelectorAll('button');
+    if (btns[0]) btns[0].disabled = currentPage === 0;
+    if (btns[1]) btns[1].disabled = currentPage >= Math.ceil(LEVEL_CONFIGS.length / LEVELS_PER_PAGE) - 1;
+  }
+
+  const start = currentPage * LEVELS_PER_PAGE;
+  const end = Math.min(start + LEVELS_PER_PAGE, LEVEL_CONFIGS.length);
+
+  for (let i = start; i < end; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'level-btn' + (i === currentLevel ? ' active' : '') + (completedLevels.has(i) ? ' completed' : '');
+    btn.textContent = i + 1;
+    if (completedLevels.has(i) && bestTimes[i]) {
+      btn.title = `Tempo: ${formatTime(bestTimes[i])}`;
+    }
+    btn.addEventListener('click', () => loadLevel(i));
+    levelSelectorEl.appendChild(btn);
+  }
+}
+
+// ─── Load Level ─────────────────────────────────────────────────
+function loadLevel(index) {
+  currentLevel = index;
+  puzzle = getPuzzle(index);
+
+  if (!puzzle) {
+    showMessage('Errore nel generare il puzzle', 'error');
+    return;
+  }
+
+  const maxGridPx = Math.min(window.innerWidth - 64, 420);
+  const idealSize = Math.floor(maxGridPx / puzzle.size);
+  const cellSize = Math.min(60, Math.max(36, idealSize));
+  document.documentElement.style.setProperty('--cell-size', cellSize + 'px');
+
+  const { size, givens } = puzzle;
+  board = Array.from({length: size}, () => new Array(size).fill(EMPTY));
+  givenSet = new Set();
+
+  for (const g of givens) {
+    board[g.row][g.col] = g.val;
+    givenSet.add(`${g.row},${g.col}`);
+  }
+
+  moveHistory = [];
+  solved = false;
+  elapsed = 0;
+  stopTimer();
+  timerEl.textContent = '0:00';
+  hideMessage();
+  overlayEl.classList.remove('visible');
+  buildLevelSelector();
+  renderBoard();
+}
+
+// ─── Render Board ───────────────────────────────────────────────
+function renderBoard() {
+  const { size, constraints } = puzzle;
+  boardEl.style.gridTemplateColumns = `repeat(${size}, var(--cell-size))`;
+  boardEl.style.gridTemplateRows = `repeat(${size}, var(--cell-size))`;
+  boardEl.innerHTML = '';
+
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'cell-wrapper';
+
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+
+      wrapper.appendChild(cell);
+
+      // Add constraint badges
+      for (const con of constraints) {
+        if (con.r1 === r && con.c1 === c) {
+          const badge = document.createElement('div');
+          badge.className = 'constraint constraint-' + con.dir;
+          const inner = document.createElement('div');
+          inner.className = 'constraint-badge';
+          inner.textContent = con.type === '=' ? '=' : '\u00D7';
+          badge.appendChild(inner);
+          wrapper.appendChild(badge);
+        }
+      }
+
+      boardEl.appendChild(wrapper);
+    }
+  }
+
+  updateVisuals();
+}
+
+// ─── Cell Interaction ───────────────────────────────────────────
+boardContainer.addEventListener('pointerdown', onCellClick);
+
+function onCellClick(e) {
+  if (solved) return;
+  const el = e.target.closest('.cell');
+  if (!el) return;
+  e.preventDefault();
+
+  const row = parseInt(el.dataset.row);
+  const col = parseInt(el.dataset.col);
+  const key = `${row},${col}`;
+
+  if (givenSet.has(key)) return; // can't modify givens
+
+  if (!timerRunning) startTimer();
+
+  const oldVal = board[row][col];
+  let newVal;
+
+  // Cycle: EMPTY -> SUN -> MOON -> EMPTY
+  if (oldVal === EMPTY) newVal = SUN;
+  else if (oldVal === SUN) newVal = MOON;
+  else newVal = EMPTY;
+
+  board[row][col] = newVal;
+  moveHistory.push({ row, col, oldVal, newVal });
+  updateVisuals();
+
+  // Check if board is full
+  let full = true;
+  for (let r = 0; r < puzzle.size; r++) {
+    for (let c = 0; c < puzzle.size; c++) {
+      if (board[r][c] === EMPTY) { full = false; break; }
+    }
+    if (!full) break;
+  }
+  if (full) checkWin();
+}
+
+// ─── Find Conflicts ─────────────────────────────────────────────
+function findConflicts() {
+  const conflicts = new Set();
+  const { size, constraints } = puzzle;
+
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (board[r][c] === EMPTY) continue;
+      const val = board[r][c];
+
+      // Three-in-a-row horizontally
+      if (c >= 1 && c < size - 1 && board[r][c-1] === val && board[r][c+1] === val) {
+        conflicts.add(`${r},${c-1}`);
+        conflicts.add(`${r},${c}`);
+        conflicts.add(`${r},${c+1}`);
+      }
+
+      // Three-in-a-row vertically
+      if (r >= 1 && r < size - 1 && board[r-1][c] === val && board[r+1][c] === val) {
+        conflicts.add(`${r-1},${c}`);
+        conflicts.add(`${r},${c}`);
+        conflicts.add(`${r+1},${c}`);
+      }
+    }
+  }
+
+  // Check row/col counts (only flag when full or exceeding)
+  const half = size / 2;
+  for (let r = 0; r < size; r++) {
+    let sunCount = 0, moonCount = 0;
+    for (let c = 0; c < size; c++) {
+      if (board[r][c] === SUN) sunCount++;
+      else if (board[r][c] === MOON) moonCount++;
+    }
+    if (sunCount > half || moonCount > half) {
+      const overSymbol = sunCount > half ? SUN : MOON;
+      for (let c = 0; c < size; c++) {
+        if (board[r][c] === overSymbol) conflicts.add(`${r},${c}`);
+      }
+    }
+  }
+
+  for (let c = 0; c < size; c++) {
+    let sunCount = 0, moonCount = 0;
+    for (let r = 0; r < size; r++) {
+      if (board[r][c] === SUN) sunCount++;
+      else if (board[r][c] === MOON) moonCount++;
+    }
+    if (sunCount > half || moonCount > half) {
+      const overSymbol = sunCount > half ? SUN : MOON;
+      for (let r = 0; r < size; r++) {
+        if (board[r][c] === overSymbol) conflicts.add(`${r},${c}`);
+      }
+    }
+  }
+
+  // Check constraints
+  for (const con of constraints) {
+    const v1 = board[con.r1][con.c1];
+    const v2 = board[con.r2][con.c2];
+    if (v1 === EMPTY || v2 === EMPTY) continue;
+    if (con.type === '=' && v1 !== v2) {
+      conflicts.add(`${con.r1},${con.c1}`);
+      conflicts.add(`${con.r2},${con.c2}`);
+    }
+    if (con.type === 'x' && v1 === v2) {
+      conflicts.add(`${con.r1},${con.c1}`);
+      conflicts.add(`${con.r2},${con.c2}`);
+    }
+  }
+
+  return conflicts;
+}
+
+// ─── Update Visuals ─────────────────────────────────────────────
+function updateVisuals() {
+  const cells = boardEl.querySelectorAll('.cell');
+  const conflicts = findConflicts();
+
+  cells.forEach(cell => {
+    const r = parseInt(cell.dataset.row);
+    const c = parseInt(cell.dataset.col);
+    const key = `${r},${c}`;
+    const val = board[r][c];
+
+    cell.classList.remove('conflict', 'pizza', 'ananas', 'given');
+    const oldSymbol = cell.querySelector('.symbol');
+    if (oldSymbol) oldSymbol.remove();
+
+    if (givenSet.has(key)) cell.classList.add('given');
+
+    if (val === SUN) {
+      cell.classList.add('pizza');
+      const sym = document.createElement('span');
+      sym.className = 'symbol';
+      sym.textContent = '\uD83C\uDF55';
+      cell.appendChild(sym);
+    } else if (val === MOON) {
+      cell.classList.add('ananas');
+      const sym = document.createElement('span');
+      sym.className = 'symbol';
+      sym.textContent = '\uD83C\uDF4D';
+      cell.appendChild(sym);
+    }
+
+    if (conflicts.has(key) && val !== EMPTY) {
+      cell.classList.add('conflict');
+    }
+  });
+}
+
+// ─── Win Check ──────────────────────────────────────────────────
+function checkWin() {
+  const conflicts = findConflicts();
+  if (conflicts.size > 0) return;
+
+  const { size } = puzzle;
+  const half = size / 2;
+
+  // Verify all cells filled and balanced
+  for (let r = 0; r < size; r++) {
+    let sunCount = 0, moonCount = 0;
+    for (let c = 0; c < size; c++) {
+      if (board[r][c] === EMPTY) return;
+      if (board[r][c] === SUN) sunCount++;
+      else moonCount++;
+    }
+    if (sunCount !== half || moonCount !== half) return;
+  }
+
+  for (let c = 0; c < size; c++) {
+    let sunCount = 0, moonCount = 0;
+    for (let r = 0; r < size; r++) {
+      if (board[r][c] === SUN) sunCount++;
+      else moonCount++;
+    }
+    if (sunCount !== half || moonCount !== half) return;
+  }
+
+  // WIN!
+  solved = true;
+  stopTimer();
+  completedLevels.add(currentLevel);
+  if (!bestTimes[currentLevel] || elapsed < bestTimes[currentLevel]) {
+    bestTimes[currentLevel] = elapsed;
+  }
+  saveProgress();
+  buildLevelSelector();
+
+  showMessage('Complimenti! Puzzle risolto!', 'success');
+
+  const isNewBest = elapsed === bestTimes[currentLevel];
+  setTimeout(() => {
+    document.getElementById('modalTime').textContent = formatTime(elapsed);
+    document.getElementById('modalMsg').textContent = `Livello ${currentLevel + 1} completato!` + (isNewBest ? ' Nuovo record!' : '');
+    overlayEl.classList.add('visible');
+  }, 600);
+}
+
+// ─── Undo ───────────────────────────────────────────────────────
+function undo() {
+  if (moveHistory.length === 0 || solved) return;
+
+  const lastMove = moveHistory.pop();
+  board[lastMove.row][lastMove.col] = lastMove.oldVal;
+  updateVisuals();
+}
+
+// ─── Timer ──────────────────────────────────────────────────────
+function startTimer() {
+  if (timerRunning) return;
+  timerRunning = true;
+  startTime = Date.now() - elapsed;
+  timerInterval = setInterval(() => {
+    elapsed = Date.now() - startTime;
+    timerEl.textContent = formatTime(elapsed);
+  }, 100);
+}
+
+function stopTimer() {
+  timerRunning = false;
+  clearInterval(timerInterval);
+}
+
+function formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
+// ─── Messages ───────────────────────────────────────────────────
+function showMessage(text, type) {
+  messageEl.textContent = text;
+  messageEl.className = 'message visible ' + type;
+  setTimeout(() => hideMessage(), 3000);
+}
+
+function hideMessage() {
+  messageEl.classList.remove('visible');
+}
+
+// ─── Button handlers ────────────────────────────────────────────
+document.getElementById('btnUndo').addEventListener('click', undo);
+document.getElementById('btnReset').addEventListener('click', () => loadLevel(currentLevel));
+document.getElementById('btnNext').addEventListener('click', () => {
+  const next = (currentLevel + 1) % LEVEL_CONFIGS.length;
+  loadLevel(next);
+});
+document.getElementById('btnNewGame').addEventListener('click', () => {
+  const cfg = LEVEL_CONFIGS[currentLevel];
+  let p = null;
+  let seed = Date.now() & 0xFFFF;
+  let attempts = 0;
+  while (!p && attempts < 2000) {
+    p = generatePuzzle(cfg.size, seed);
+    seed++;
+    attempts++;
+  }
+  if (p) {
+    puzzleCache[currentLevel] = p;
+    loadLevel(currentLevel);
+  }
+});
+
+// Keyboard support
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    undo();
+  }
+});
+
+// ─── Init ───────────────────────────────────────────────────────
+const firstIncomplete = LEVEL_CONFIGS.findIndex((_, i) => !completedLevels.has(i));
+loadLevel(firstIncomplete >= 0 ? firstIncomplete : 0);
+</script>
+</body>
+</html>
