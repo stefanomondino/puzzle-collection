@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>PathTrace - Puzzle Game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #faf8f5;
+    --card: #ffffff;
+    --primary: #6C5CE7;
+    --primary-light: #e8e4fd;
+    --path: #6C5CE7;
+    --path-light: #d5d0f5;
+    --number-bg: #6C5CE7;
+    --number-text: #ffffff;
+    --cell-border: #d9d9d9;
+    --text: #2d2d2d;
+    --text-muted: #777777;
+    --success: #00b894;
+    --cell-size: 60px;
+    --gap: 2px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  header {
+    width: 100%;
+    max-width: 500px;
+    padding: 16px 20px 8px;
+    text-align: center;
+    position: relative;
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--primary);
+    text-transform: uppercase;
+  }
+
+  header p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 20px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .timer {
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    min-width: 70px;
+    text-align: center;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn:active { transform: scale(0.95); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+  }
+
+  .btn-outline:hover { background: var(--primary-light); }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #5a4bd6; }
+
+  .level-selector {
+    display: flex;
+    gap: 6px;
+    padding: 4px 20px 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 500px;
+  }
+
+  .level-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--cell-border);
+    background: var(--card);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text);
+  }
+
+  .level-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+
+  .level-btn.completed {
+    border-color: var(--success);
+    color: var(--success);
+    position: relative;
+  }
+
+  .level-btn.completed::after {
+    content: '✓';
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    font-size: 10px;
+    background: var(--success);
+    color: #fff;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .level-btn.completed.active {
+    background: var(--success);
+    color: #fff;
+  }
+
+  .board-container {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    position: relative;
+    touch-action: none;
+  }
+
+  .board {
+    display: grid;
+    gap: var(--gap);
+    position: relative;
+    background: #f0f0f0;
+    border-radius: 8px;
+  }
+
+  .cell {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    background: #f8f8f8;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    position: relative;
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+
+  .cell.numbered {
+    color: var(--number-text);
+  }
+
+  .cell.numbered .cell-number {
+    width: 36px;
+    height: 36px;
+    background: var(--number-bg);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    position: relative;
+    z-index: 4;
+  }
+
+  .cell.visited {
+    background: transparent;
+  }
+
+  .cell.visited .cell-number {
+    background: #5a4bd6;
+  }
+
+  .cell.current {
+    background: transparent;
+  }
+
+  .cell.current .cell-number {
+    background: #fff;
+    color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary);
+    z-index: 5;
+  }
+
+  .cell.current:not(.numbered)::after {
+    content: '';
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    position: absolute;
+    z-index: 5;
+    box-shadow: 0 0 0 3px var(--primary);
+  }
+
+  svg.connections {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .message {
+    margin-top: 16px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .message.visible {
+    opacity: 1;
+  }
+
+  .message.success {
+    background: #e8f5e9;
+    color: var(--success);
+  }
+
+  .message.error {
+    background: #fce4ec;
+    color: #c62828;
+  }
+
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .overlay.visible { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px;
+    max-width: 340px;
+    width: 90%;
+    text-align: center;
+    animation: pop 0.3s ease;
+  }
+
+  @keyframes pop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .modal h2 { font-size: 24px; margin-bottom: 8px; color: var(--success); }
+  .modal p { color: var(--text-muted); margin-bottom: 20px; }
+  .modal .time { font-size: 36px; font-weight: 700; color: var(--text); margin: 8px 0; }
+
+  .instructions {
+    max-width: 500px;
+    padding: 12px 20px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .cell.start-hint .cell-number {
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(108,92,231,0.4); }
+    50% { transform: scale(1.15); box-shadow: 0 0 0 8px rgba(108,92,231,0); }
+  }
+
+  @media (max-width: 420px) {
+    :root { --cell-size: 50px; }
+    .cell .cell-number { width: 30px; height: 30px; font-size: 14px; }
+  }
+
+  @media (max-width: 350px) {
+    :root { --cell-size: 44px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" style="position:absolute;left:16px;top:16px;color:var(--primary);text-decoration:none;font-size:18px;font-weight:600;">← Menu</a>
+  <h1>PathTrace</h1>
+  <p>Traccia il percorso attraverso ogni cella</p>
+  <p id="stats" style="font-size:12px;color:var(--text-muted);margin-top:4px;"></p>
+</header>
+
+<div class="toolbar">
+  <button class="btn btn-outline" id="btnUndo">↩ Annulla</button>
+  <div class="timer" id="timer">0:00</div>
+  <button class="btn btn-outline" id="btnReset">⟳ Reset</button>
+</div>
+
+<div class="toolbar" style="padding-top:0">
+  <button class="btn btn-primary" id="btnNewGame" style="font-size:13px; padding: 6px 14px;">Nuovo puzzle</button>
+</div>
+
+<div class="level-selector" id="levelSelector"></div>
+
+<div class="board-container" id="boardContainer">
+  <svg class="connections" id="svgConnections"></svg>
+  <div class="board" id="board"></div>
+</div>
+
+<div class="message" id="message"></div>
+
+<p class="instructions">
+  Parti dal numero <strong>1</strong> e traccia un percorso continuo che passi per ogni cella,
+  toccando i numeri in ordine crescente. Muoviti in orizzontale o verticale.
+</p>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">Completato!</h2>
+    <div class="time" id="modalTime">0:00</div>
+    <p id="modalMsg">Hai risolto il puzzle!</p>
+    <button class="btn btn-primary" id="btnNext" style="margin-top:8px;">Livello successivo →</button>
+  </div>
+</div>
+
+<script>
+// ─── Seeded PRNG (Mulberry32) ───────────────────────────────────
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// ─── Hamiltonian Path Generator (Warnsdorff's heuristic) ────────
+function generateHamiltonianPath(rows, cols, rng) {
+  const total = rows * cols;
+
+  function neighbors(idx) {
+    const r = Math.floor(idx / cols), c = idx % cols;
+    const ns = [];
+    if (r > 0) ns.push(idx - cols);
+    if (r < rows - 1) ns.push(idx + cols);
+    if (c > 0) ns.push(idx - 1);
+    if (c < cols - 1) ns.push(idx + 1);
+    return ns;
+  }
+
+  function tryPath(startIdx) {
+    const visited = new Uint8Array(total);
+    const path = [startIdx];
+    visited[startIdx] = 1;
+
+    while (path.length < total) {
+      const curr = path[path.length - 1];
+      const nexts = neighbors(curr).filter(n => !visited[n]);
+      if (nexts.length === 0) break;
+
+      // Warnsdorff: pick neighbor with fewest onward moves (break ties randomly)
+      nexts.sort((a, b) => {
+        const da = neighbors(a).filter(n => !visited[n]).length;
+        const db = neighbors(b).filter(n => !visited[n]).length;
+        return da - db || (rng() - 0.5);
+      });
+      const next = nexts[0];
+      visited[next] = 1;
+      path.push(next);
+    }
+    return path;
+  }
+
+  // Try multiple random starting positions
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const start = Math.floor(rng() * total);
+    const path = tryPath(start);
+    if (path.length === total) return path;
+  }
+
+  // Fallback: try all corners
+  for (const start of [0, cols - 1, (rows - 1) * cols, total - 1]) {
+    const path = tryPath(start);
+    if (path.length === total) return path;
+  }
+
+  return null; // should not happen for small grids
+}
+
+// ─── Puzzle Generator ───────────────────────────────────────────
+function generatePuzzle(rows, cols, numWaypoints, seed) {
+  const rng = mulberry32(seed);
+  const solutionPath = generateHamiltonianPath(rows, cols, rng);
+  if (!solutionPath) return null;
+
+  const total = rows * cols;
+  const numbers = {};
+
+  // Place waypoints evenly along the solution path
+  // First waypoint is at position 0, last at position total-1
+  const positions = [0];
+  const innerCount = numWaypoints - 2;
+  for (let i = 1; i <= innerCount; i++) {
+    const pos = Math.round((i / (numWaypoints - 1)) * (total - 1));
+    positions.push(pos);
+  }
+  positions.push(total - 1);
+
+  positions.forEach((pos, i) => {
+    numbers[solutionPath[pos]] = i + 1;
+  });
+
+  return { rows, cols, numbers, _solution: solutionPath };
+}
+
+// ─── Level Configs (50 levels) ──────────────────────────────────
+const LEVEL_CONFIGS = [];
+(function buildConfigs() {
+  // Levels 1-5: 5x5 easy (3-4 waypoints)
+  for (let i = 0; i < 5; i++) LEVEL_CONFIGS.push({ rows: 5, cols: 5, waypoints: 3 + Math.floor(i / 3) });
+  // Levels 6-10: 5x5 medium (4-5 waypoints)
+  for (let i = 0; i < 5; i++) LEVEL_CONFIGS.push({ rows: 5, cols: 5, waypoints: 4 + Math.floor(i / 3) });
+  // Levels 11-15: 6x6 easy
+  for (let i = 0; i < 5; i++) LEVEL_CONFIGS.push({ rows: 6, cols: 6, waypoints: 4 + Math.floor(i / 2) });
+  // Levels 16-20: 6x6 medium
+  for (let i = 0; i < 5; i++) LEVEL_CONFIGS.push({ rows: 6, cols: 6, waypoints: 5 + Math.floor(i / 3) });
+  // Levels 21-25: 7x7 easy
+  for (let i = 0; i < 5; i++) LEVEL_CONFIGS.push({ rows: 7, cols: 7, waypoints: 4 + Math.floor(i / 2) });
+  // Levels 26-30: 7x7 medium
+  for (let i = 0; i < 5; i++) LEVEL_CONFIGS.push({ rows: 7, cols: 7, waypoints: 6 + Math.floor(i / 3) });
+  // Levels 31-35: 8x8
+  for (let i = 0; i < 5; i++) LEVEL_CONFIGS.push({ rows: 8, cols: 8, waypoints: 5 + Math.floor(i / 2) });
+  // Levels 36-40: 8x8 harder
+  for (let i = 0; i < 5; i++) LEVEL_CONFIGS.push({ rows: 8, cols: 8, waypoints: 7 + Math.floor(i / 3) });
+  // Levels 41-45: 9x9
+  for (let i = 0; i < 5; i++) LEVEL_CONFIGS.push({ rows: 9, cols: 9, waypoints: 6 + Math.floor(i / 2) });
+  // Levels 46-50: 10x10
+  for (let i = 0; i < 5; i++) LEVEL_CONFIGS.push({ rows: 10, cols: 10, waypoints: 7 + Math.floor(i / 2) });
+})();
+
+// Generate puzzle on demand (lazy) with deterministic seeds
+const puzzleCache = {};
+function getPuzzle(index) {
+  if (puzzleCache[index]) return puzzleCache[index];
+  const cfg = LEVEL_CONFIGS[index];
+  let puzzle = null;
+  let seed = 1000 + index * 137;
+  while (!puzzle) {
+    puzzle = generatePuzzle(cfg.rows, cfg.cols, cfg.waypoints, seed);
+    seed += 7;
+  }
+  puzzleCache[index] = puzzle;
+  return puzzle;
+}
+
+// ─── Persistence (localStorage) ─────────────────────────────────
+const STORAGE_KEY = 'zip_progress';
+function loadProgress() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (data && data.completed) return { completed: new Set(data.completed), bestTimes: data.bestTimes || {} };
+  } catch(e) {}
+  return { completed: new Set(), bestTimes: {} };
+}
+function saveProgress() {
+  const data = { completed: [...completedLevels], bestTimes };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+const progress = loadProgress();
+
+// ─── Game State ─────────────────────────────────────────────────
+let currentLevel = 0;
+let path = [];
+let totalCells = 0;
+let puzzle = null;
+let timerInterval = null;
+let startTime = 0;
+let elapsed = 0;
+let timerRunning = false;
+let solved = false;
+let completedLevels = progress.completed;
+let bestTimes = progress.bestTimes;
+let isDrawing = false;
+
+// ─── DOM refs ───────────────────────────────────────────────────
+const boardEl = document.getElementById('board');
+const svgEl = document.getElementById('svgConnections');
+const timerEl = document.getElementById('timer');
+const messageEl = document.getElementById('message');
+const overlayEl = document.getElementById('overlay');
+const levelSelectorEl = document.getElementById('levelSelector');
+const boardContainer = document.getElementById('boardContainer');
+
+// ─── Level selector (paginated, 10 per page) ───────────────────
+const LEVELS_PER_PAGE = 10;
+let currentPage = 0;
+
+function buildLevelSelector() {
+  levelSelectorEl.innerHTML = '';
+  const totalPages = Math.ceil(LEVEL_CONFIGS.length / LEVELS_PER_PAGE);
+  currentPage = Math.floor(currentLevel / LEVELS_PER_PAGE);
+
+  // Page nav
+  if (totalPages > 1) {
+    const nav = document.createElement('div');
+    nav.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;justify-content:center;margin-bottom:6px;';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'btn btn-outline';
+    prevBtn.style.cssText = 'padding:4px 10px;font-size:12px;min-width:auto;';
+    prevBtn.textContent = '◀';
+    prevBtn.disabled = currentPage === 0;
+    prevBtn.addEventListener('click', () => { currentPage = Math.max(0, currentPage - 1); buildLevelButtons(); });
+
+    const label = document.createElement('span');
+    label.style.cssText = 'font-size:12px;color:var(--text-muted);min-width:60px;text-align:center;';
+    label.textContent = `${currentPage * LEVELS_PER_PAGE + 1}–${Math.min((currentPage + 1) * LEVELS_PER_PAGE, LEVEL_CONFIGS.length)}`;
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn btn-outline';
+    nextBtn.style.cssText = 'padding:4px 10px;font-size:12px;min-width:auto;';
+    nextBtn.textContent = '▶';
+    nextBtn.disabled = currentPage >= totalPages - 1;
+    nextBtn.addEventListener('click', () => { currentPage = Math.min(totalPages - 1, currentPage + 1); buildLevelButtons(); });
+
+    nav.appendChild(prevBtn);
+    nav.appendChild(label);
+    nav.appendChild(nextBtn);
+    levelSelectorEl.appendChild(nav);
+  }
+
+  buildLevelButtons();
+  document.getElementById('stats').textContent = `Completati: ${completedLevels.size}/${LEVEL_CONFIGS.length}`;
+}
+
+function buildLevelButtons() {
+  // Remove old buttons (keep nav)
+  const nav = levelSelectorEl.querySelector('div');
+  const existingBtns = levelSelectorEl.querySelectorAll('.level-btn');
+  existingBtns.forEach(b => b.remove());
+
+  // Update nav label
+  if (nav) {
+    const label = nav.querySelector('span');
+    if (label) label.textContent = `${currentPage * LEVELS_PER_PAGE + 1}–${Math.min((currentPage + 1) * LEVELS_PER_PAGE, LEVEL_CONFIGS.length)}`;
+    const btns = nav.querySelectorAll('button');
+    if (btns[0]) btns[0].disabled = currentPage === 0;
+    if (btns[1]) btns[1].disabled = currentPage >= Math.ceil(LEVEL_CONFIGS.length / LEVELS_PER_PAGE) - 1;
+  }
+
+  const start = currentPage * LEVELS_PER_PAGE;
+  const end = Math.min(start + LEVELS_PER_PAGE, LEVEL_CONFIGS.length);
+
+  for (let i = start; i < end; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'level-btn' + (i === currentLevel ? ' active' : '') + (completedLevels.has(i) ? ' completed' : '');
+    btn.textContent = i + 1;
+    if (completedLevels.has(i) && bestTimes[i]) {
+      btn.title = `Tempo: ${formatTime(bestTimes[i])}`;
+    }
+    btn.addEventListener('click', () => loadLevel(i));
+    levelSelectorEl.appendChild(btn);
+  }
+}
+
+// ─── Load Level ─────────────────────────────────────────────────
+function loadLevel(index) {
+  currentLevel = index;
+  puzzle = getPuzzle(index);
+
+  // Adapt cell size to grid
+  const maxGridPx = Math.min(window.innerWidth - 64, 420);
+  const idealSize = Math.floor((maxGridPx - (puzzle.cols - 1) * 2) / puzzle.cols);
+  const cellSize = Math.min(60, Math.max(36, idealSize));
+  document.documentElement.style.setProperty('--cell-size', cellSize + 'px');
+  totalCells = puzzle.rows * puzzle.cols;
+  path = [];
+  solved = false;
+  elapsed = 0;
+  stopTimer();
+  timerEl.textContent = '0:00';
+  hideMessage();
+  overlayEl.classList.remove('visible');
+  buildLevelSelector();
+  renderBoard();
+}
+
+// ─── Render Board ───────────────────────────────────────────────
+function renderBoard() {
+  const { rows, cols, numbers } = puzzle;
+  boardEl.style.gridTemplateColumns = `repeat(${cols}, var(--cell-size))`;
+  boardEl.style.gridTemplateRows = `repeat(${rows}, var(--cell-size))`;
+  boardEl.innerHTML = '';
+
+  const cellSizePx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell-size'));
+  const gapPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap'));
+  const totalW = cols * cellSizePx + (cols - 1) * gapPx;
+  const totalH = rows * cellSizePx + (rows - 1) * gapPx;
+  svgEl.setAttribute('width', totalW);
+  svgEl.setAttribute('height', totalH);
+  svgEl.innerHTML = '';
+
+  for (let i = 0; i < totalCells; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.index = i;
+
+    if (numbers[i] !== undefined) {
+      cell.classList.add('numbered');
+      const numEl = document.createElement('div');
+      numEl.className = 'cell-number';
+      numEl.textContent = numbers[i];
+      cell.appendChild(numEl);
+    }
+
+    boardEl.appendChild(cell);
+  }
+}
+
+// Pointer events (set once)
+boardContainer.addEventListener('pointerdown', onPointerDown);
+boardContainer.addEventListener('pointermove', onPointerMove);
+boardContainer.addEventListener('pointerup', onPointerUp);
+boardContainer.addEventListener('pointerleave', onPointerUp);
+
+function getCellFromPoint(x, y) {
+  const el = document.elementFromPoint(x, y);
+  if (!el) return -1;
+  const cell = el.closest('.cell');
+  if (!cell) return -1;
+  return parseInt(cell.dataset.index);
+}
+
+// ─── Pointer Handling ───────────────────────────────────────────
+function onPointerDown(e) {
+  if (solved) return;
+  e.preventDefault();
+  const idx = getCellFromPoint(e.clientX, e.clientY);
+  if (idx < 0) return;
+
+  // Must start from number 1 or continue from current
+  if (path.length === 0) {
+    // find cell with number 1
+    const startCell = Object.entries(puzzle.numbers).find(([_, n]) => n === 1);
+    if (startCell && parseInt(startCell[0]) === idx) {
+      path = [idx];
+      isDrawing = true;
+      startTimer();
+      updateVisuals();
+    }
+  } else if (idx === path[path.length - 1]) {
+    // Continue drawing from current position
+    isDrawing = true;
+  } else if (path.includes(idx)) {
+    // Click on a cell in the path: truncate back to that cell
+    const pathIdx = path.indexOf(idx);
+    path = path.slice(0, pathIdx + 1);
+    isDrawing = true;
+    updateVisuals();
+  }
+}
+
+function onPointerMove(e) {
+  if (!isDrawing || solved) return;
+  e.preventDefault();
+  const idx = getCellFromPoint(e.clientX, e.clientY);
+  if (idx < 0) return;
+  tryMove(idx);
+}
+
+function onPointerUp(e) {
+  isDrawing = false;
+  if (solved) return;
+  checkWin();
+}
+
+function tryMove(idx) {
+  if (path.length === 0) return;
+
+  const current = path[path.length - 1];
+  if (idx === current) return;
+
+  // If moving back to previous cell (undo last step)
+  if (path.length >= 2 && idx === path[path.length - 2]) {
+    path.pop();
+    updateVisuals();
+    return;
+  }
+
+  // Must be adjacent (horizontal or vertical)
+  if (!isAdjacent(current, idx)) return;
+
+  // Must not already be in path
+  if (path.includes(idx)) return;
+
+  // Check number constraints
+  if (puzzle.numbers[idx] !== undefined) {
+    const num = puzzle.numbers[idx];
+    // Find next expected number
+    const nextExpected = getNextExpectedNumber();
+    if (num !== nextExpected) return; // can't visit this number out of order
+  }
+
+  // Also check: we can't skip a number. If there's a number we haven't visited
+  // that's lower than any number at idx, block
+  path.push(idx);
+  updateVisuals();
+
+  // Check if complete
+  if (path.length === totalCells) {
+    checkWin();
+  }
+}
+
+function isAdjacent(a, b) {
+  const cols = puzzle.cols;
+  const rowA = Math.floor(a / cols), colA = a % cols;
+  const rowB = Math.floor(b / cols), colB = b % cols;
+  return (Math.abs(rowA - rowB) + Math.abs(colA - colB)) === 1;
+}
+
+function getNextExpectedNumber() {
+  const visited = new Set(path);
+  const sortedNumbers = Object.entries(puzzle.numbers)
+    .map(([idx, num]) => ({ idx: parseInt(idx), num }))
+    .sort((a, b) => a.num - b.num);
+
+  for (const { idx, num } of sortedNumbers) {
+    if (!visited.has(idx)) return num;
+  }
+  return Infinity;
+}
+
+// ─── Undo ───────────────────────────────────────────────────────
+function undo() {
+  if (path.length <= 1 || solved) return;
+  path.pop();
+  updateVisuals();
+}
+
+// ─── Update Visuals ─────────────────────────────────────────────
+function updateVisuals() {
+  const cells = boardEl.querySelectorAll('.cell');
+  const visited = new Set(path);
+  const currentIdx = path.length > 0 ? path[path.length - 1] : -1;
+
+  // Find cell 1 for start hint
+  const startCellIdx = parseInt(Object.entries(puzzle.numbers).find(([_, n]) => n === 1)?.[0] ?? -1);
+
+  cells.forEach(cell => {
+    const idx = parseInt(cell.dataset.index);
+    cell.classList.toggle('visited', visited.has(idx) && idx !== currentIdx);
+    cell.classList.toggle('current', idx === currentIdx);
+    cell.classList.toggle('start-hint', path.length === 0 && idx === startCellIdx);
+  });
+
+  // Draw SVG polyline
+  const cellSizePx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell-size'));
+  const gapPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap'));
+  svgEl.innerHTML = '';
+
+  if (path.length >= 2) {
+    const points = path.map(idx => {
+      const x = (idx % puzzle.cols) * (cellSizePx + gapPx) + cellSizePx / 2;
+      const y = Math.floor(idx / puzzle.cols) * (cellSizePx + gapPx) + cellSizePx / 2;
+      return `${x},${y}`;
+    }).join(' ');
+
+    const mainLine = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    mainLine.setAttribute('points', points);
+    mainLine.setAttribute('fill', 'none');
+    mainLine.setAttribute('stroke', '#6C5CE7');
+    mainLine.setAttribute('stroke-width', String(cellSizePx * 0.65));
+    mainLine.setAttribute('stroke-linejoin', 'round');
+    mainLine.setAttribute('stroke-linecap', 'round');
+    svgEl.appendChild(mainLine);
+  }
+}
+
+// ─── Win Check ──────────────────────────────────────────────────
+function checkWin() {
+  if (path.length !== totalCells) return;
+
+  // Verify all numbers are in correct order
+  const numberEntries = Object.entries(puzzle.numbers)
+    .map(([idx, num]) => ({ idx: parseInt(idx), num }))
+    .sort((a, b) => a.num - b.num);
+
+  let lastPos = -1;
+  for (const { idx } of numberEntries) {
+    const pos = path.indexOf(idx);
+    if (pos <= lastPos) return; // out of order
+    lastPos = pos;
+  }
+
+  // WIN!
+  solved = true;
+  stopTimer();
+  completedLevels.add(currentLevel);
+  if (!bestTimes[currentLevel] || elapsed < bestTimes[currentLevel]) {
+    bestTimes[currentLevel] = elapsed;
+  }
+  saveProgress();
+  buildLevelSelector();
+
+  showMessage('Complimenti! Puzzle risolto!', 'success');
+
+  const isNewBest = elapsed === bestTimes[currentLevel];
+  setTimeout(() => {
+    document.getElementById('modalTime').textContent = formatTime(elapsed);
+    document.getElementById('modalMsg').textContent = `Livello ${currentLevel + 1} completato!` + (isNewBest ? ' Nuovo record!' : '');
+    overlayEl.classList.add('visible');
+  }, 600);
+}
+
+// ─── Timer ──────────────────────────────────────────────────────
+function startTimer() {
+  if (timerRunning) return;
+  timerRunning = true;
+  startTime = Date.now() - elapsed;
+  timerInterval = setInterval(() => {
+    elapsed = Date.now() - startTime;
+    timerEl.textContent = formatTime(elapsed);
+  }, 100);
+}
+
+function stopTimer() {
+  timerRunning = false;
+  clearInterval(timerInterval);
+}
+
+function formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
+// ─── Messages ───────────────────────────────────────────────────
+function showMessage(text, type) {
+  messageEl.textContent = text;
+  messageEl.className = 'message visible ' + type;
+  setTimeout(() => hideMessage(), 3000);
+}
+
+function hideMessage() {
+  messageEl.classList.remove('visible');
+}
+
+// ─── Button handlers ────────────────────────────────────────────
+document.getElementById('btnUndo').addEventListener('click', undo);
+document.getElementById('btnReset').addEventListener('click', () => loadLevel(currentLevel));
+document.getElementById('btnNext').addEventListener('click', () => {
+  const next = (currentLevel + 1) % LEVEL_CONFIGS.length;
+  loadLevel(next);
+});
+document.getElementById('btnNewGame').addEventListener('click', () => {
+  // Clear cache so puzzles regenerate with new seeds based on current level
+  const cfg = LEVEL_CONFIGS[currentLevel];
+  let p = null;
+  let seed = Date.now();
+  while (!p) {
+    p = generatePuzzle(cfg.rows, cfg.cols, cfg.waypoints, seed);
+    seed += 7;
+  }
+  puzzleCache[currentLevel] = p;
+  loadLevel(currentLevel);
+});
+
+// Keyboard support
+document.addEventListener('keydown', (e) => {
+  if (solved) return;
+
+  // Start from cell 1 with any arrow key
+  if (path.length === 0) {
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+      const startCell = Object.entries(puzzle.numbers).find(([_, n]) => n === 1);
+      if (startCell) {
+        path = [parseInt(startCell[0])];
+        startTimer();
+        updateVisuals();
+      }
+    }
+    return;
+  }
+  const current = path[path.length - 1];
+  const cols = puzzle.cols;
+  let target = -1;
+
+  switch (e.key) {
+    case 'ArrowUp':    target = current - cols; break;
+    case 'ArrowDown':  target = current + cols; break;
+    case 'ArrowLeft':  if (current % cols > 0) target = current - 1; break;
+    case 'ArrowRight': if ((current + 1) % cols > 0) target = current + 1; break;
+  }
+
+  if (target >= 0 && target < totalCells) {
+    e.preventDefault();
+    if (!timerRunning) startTimer();
+
+    // Allow undo via keyboard too
+    if (path.length >= 2 && target === path[path.length - 2]) {
+      path.pop();
+      updateVisuals();
+    } else {
+      tryMove(target);
+    }
+  }
+
+  if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    undo();
+  }
+});
+
+// ─── Init ───────────────────────────────────────────────────────
+const firstIncomplete = LEVEL_CONFIGS.findIndex((_, i) => !completedLevels.has(i));
+loadLevel(firstIncomplete >= 0 ? firstIncomplete : 0);
+</script>
+</body>
+</html>

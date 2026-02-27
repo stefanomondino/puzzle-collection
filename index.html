@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Puzzle Collection</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #faf8f5;
+    --card: #ffffff;
+    --primary: #6C5CE7;
+    --primary-light: #e8e4fd;
+    --text: #2d2d2d;
+    --text-muted: #777777;
+    --success: #00b894;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    -webkit-user-select: none;
+    padding: 0 16px;
+  }
+
+  header {
+    width: 100%;
+    max-width: 500px;
+    padding: 32px 20px 8px;
+    text-align: center;
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--primary);
+    text-transform: uppercase;
+  }
+
+  header p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .games {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+    max-width: 500px;
+    padding: 24px 0;
+  }
+
+  .game-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    text-align: center;
+    text-decoration: none;
+    color: var(--text);
+    transition: transform 0.15s, box-shadow 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .game-card:active { transform: scale(0.97); }
+  .game-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
+
+  .game-icon {
+    font-size: 48px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .game-card h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .game-card p {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  @media (max-width: 360px) {
+    .games { grid-template-columns: 1fr; max-width: 280px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Puzzle Collection</h1>
+  <p>Scegli un gioco</p>
+</header>
+
+<div class="games">
+  <a href="pathtrace.html" class="game-card">
+    <div class="game-icon">⚡</div>
+    <h2>PathTrace</h2>
+    <p>Traccia il percorso attraverso ogni cella</p>
+  </a>
+
+  <a href="crowns.html" class="game-card">
+    <div class="game-icon">♛</div>
+    <h2>Crowns</h2>
+    <p>Posiziona le corone sulla scacchiera</p>
+  </a>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Crowns - Puzzle Game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #faf8f5;
+    --card: #ffffff;
+    --primary: #6C5CE7;
+    --primary-light: #e8e4fd;
+    --text: #2d2d2d;
+    --text-muted: #777777;
+    --success: #00b894;
+    --cell-size: 60px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  header {
+    width: 100%;
+    max-width: 500px;
+    padding: 16px 20px 8px;
+    text-align: center;
+    position: relative;
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--primary);
+    text-transform: uppercase;
+  }
+
+  header p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 20px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .timer {
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    min-width: 70px;
+    text-align: center;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn:active { transform: scale(0.95); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+  }
+
+  .btn-outline:hover { background: var(--primary-light); }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #5a4bd6; }
+
+  .level-selector {
+    display: flex;
+    gap: 6px;
+    padding: 4px 20px 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 500px;
+  }
+
+  .level-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #d9d9d9;
+    background: var(--card);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text);
+  }
+
+  .level-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+
+  .level-btn.completed {
+    border-color: var(--success);
+    color: var(--success);
+    position: relative;
+  }
+
+  .level-btn.completed::after {
+    content: '✓';
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    font-size: 10px;
+    background: var(--success);
+    color: #fff;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .level-btn.completed.active {
+    background: var(--success);
+    color: #fff;
+  }
+
+  .board-container {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    position: relative;
+  }
+
+  .board {
+    display: grid;
+    gap: 0;
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .cell {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: filter 0.15s;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+
+  .cell:active { filter: brightness(0.92); }
+
+  .cell.border-top { border-top: 3px solid #333; }
+  .cell.border-right { border-right: 3px solid #333; }
+  .cell.border-bottom { border-bottom: 3px solid #333; }
+  .cell.border-left { border-left: 3px solid #333; }
+
+  .queen {
+    font-size: calc(var(--cell-size) * 0.5);
+    line-height: 1;
+    color: #191919;
+    z-index: 2;
+    animation: queenPop 0.2s ease;
+  }
+
+  @keyframes queenPop {
+    from { transform: scale(0); }
+    to { transform: scale(1); }
+  }
+
+  .cell.conflict .queen {
+    color: #c62828;
+  }
+
+  .cell.conflict {
+    box-shadow: inset 0 0 0 3px rgba(198,40,40,0.5);
+  }
+
+  .cell.x-mark::before {
+    content: '✕';
+    position: absolute;
+    font-size: calc(var(--cell-size) * 0.3);
+    color: rgba(0,0,0,0.4);
+    z-index: 1;
+  }
+
+  .cell.x-auto::before {
+    color: rgba(0,0,0,0.15);
+    font-size: calc(var(--cell-size) * 0.22);
+  }
+
+  .message {
+    margin-top: 16px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .message.visible { opacity: 1; }
+  .message.success { background: #e8f5e9; color: var(--success); }
+
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .overlay.visible { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px;
+    max-width: 340px;
+    width: 90%;
+    text-align: center;
+    animation: pop 0.3s ease;
+  }
+
+  @keyframes pop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .modal h2 { font-size: 24px; margin-bottom: 8px; color: var(--success); }
+  .modal p { color: var(--text-muted); margin-bottom: 20px; }
+  .modal .time { font-size: 36px; font-weight: 700; color: var(--text); margin: 8px 0; }
+
+  .instructions {
+    max-width: 500px;
+    padding: 12px 20px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 420px) {
+    :root { --cell-size: 50px; }
+  }
+
+  @media (max-width: 350px) {
+    :root { --cell-size: 44px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" style="position:absolute;left:16px;top:16px;color:var(--primary);text-decoration:none;font-size:18px;font-weight:600;">← Menu</a>
+  <h1>Crowns</h1>
+  <p>Posiziona le corone sulla scacchiera</p>
+  <p id="stats" style="font-size:12px;color:var(--text-muted);margin-top:4px;"></p>
+</header>
+
+<div class="toolbar">
+  <button class="btn btn-outline" id="btnUndo">↩ Annulla</button>
+  <div class="timer" id="timer">0:00</div>
+  <button class="btn btn-outline" id="btnReset">⟳ Reset</button>
+</div>
+
+<div class="toolbar" style="padding-top:0">
+  <button class="btn btn-primary" id="btnNewGame" style="font-size:13px; padding: 6px 14px;">Nuovo puzzle</button>
+</div>
+
+<div class="level-selector" id="levelSelector"></div>
+
+<div class="board-container" id="boardContainer">
+  <div class="board" id="board"></div>
+</div>
+
+<div class="message" id="message"></div>
+
+<p class="instructions">
+  Posiziona esattamente una corona <strong>♛</strong> per ogni regione colorata.
+  Le corone non possono trovarsi nella stessa riga, colonna, o in celle adiacenti (incluse le diagonali).<br>
+  <strong>Tap</strong> per segnare/rimuovere una ✕ · <strong>Doppio tap</strong> per piazzare/rimuovere una corona.
+</p>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">Completato!</h2>
+    <div class="time" id="modalTime">0:00</div>
+    <p id="modalMsg">Hai risolto il puzzle!</p>
+    <button class="btn btn-primary" id="btnNext" style="margin-top:8px;">Livello successivo →</button>
+  </div>
+</div>
+
+<script>
+// ─── Seeded PRNG (Mulberry32) ───────────────────────────────────
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function shuffleArray(arr, rng) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ─── Region Colors ──────────────────────────────────────────────
+const REGION_COLORS = [
+  '#FFB3B3', // red
+  '#FFD699', // orange
+  '#FFF2A8', // yellow
+  '#B3E6B3', // green
+  '#A8D4FF', // blue
+  '#D4B3FF', // purple
+  '#FFB3D9', // pink
+  '#A8E6E6', // teal
+  '#E6CCAA', // brown
+];
+
+// ─── Random Partition Generator ─────────────────────────────────
+function generateRandomPartition(n, rng) {
+  const grid = Array.from({length: n}, () => new Array(n).fill(-1));
+  const allCells = [];
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++)
+      allCells.push([r, c]);
+  shuffleArray(allCells, rng);
+
+  const seedCells = allCells.slice(0, n);
+  const frontiers = [];
+  for (let i = 0; i < n; i++) {
+    const [r, c] = seedCells[i];
+    grid[r][c] = i;
+    frontiers.push([[r, c]]);
+  }
+
+  function getN4(r, c) {
+    const ns = [];
+    if (r > 0) ns.push([r-1, c]);
+    if (r < n-1) ns.push([r+1, c]);
+    if (c > 0) ns.push([r, c-1]);
+    if (c < n-1) ns.push([r, c+1]);
+    return ns;
+  }
+
+  let unclaimed = n * n - n;
+  let safety = n * n * 20;
+  while (unclaimed > 0 && safety-- > 0) {
+    for (let region = 0; region < n; region++) {
+      if (frontiers[region].length === 0) continue;
+      let claimed = false;
+      let tries = frontiers[region].length;
+      while (tries-- > 0 && !claimed) {
+        const idx = Math.floor(rng() * frontiers[region].length);
+        const [fr, fc] = frontiers[region][idx];
+        const neighbors = getN4(fr, fc);
+        shuffleArray(neighbors, rng);
+        for (const [nr, nc] of neighbors) {
+          if (grid[nr][nc] === -1) {
+            grid[nr][nc] = region;
+            frontiers[region].push([nr, nc]);
+            unclaimed--;
+            claimed = true;
+            break;
+          }
+        }
+        if (!claimed) frontiers[region].splice(idx, 1);
+      }
+    }
+  }
+
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++)
+      if (grid[r][c] === -1) return null;
+  return grid;
+}
+
+// ─── Solution Finder & Counter ──────────────────────────────────
+function countSolutions(n, regions, maxCount) {
+  const queens = new Array(n).fill(-1);
+  const usedCols = new Set();
+  const usedRegions = new Set();
+  let count = 0;
+
+  function isAdjacentSafe(row, col) {
+    for (let r = Math.max(0, row - 1); r < row; r++) {
+      if (Math.abs(queens[r] - col) <= 1) return false;
+    }
+    return true;
+  }
+
+  function solve(row) {
+    if (row === n) { count++; return count >= maxCount; }
+    for (let col = 0; col < n; col++) {
+      const region = regions[row][col];
+      if (usedCols.has(col) || usedRegions.has(region)) continue;
+      if (!isAdjacentSafe(row, col)) continue;
+      queens[row] = col;
+      usedCols.add(col);
+      usedRegions.add(region);
+      if (solve(row + 1)) return true;
+      queens[row] = -1;
+      usedCols.delete(col);
+      usedRegions.delete(region);
+    }
+    return false;
+  }
+
+  solve(0);
+  return count;
+}
+
+function findSolution(n, regions) {
+  const queens = new Array(n).fill(-1);
+  const usedCols = new Set();
+  const usedRegions = new Set();
+
+  function isAdjacentSafe(row, col) {
+    for (let r = Math.max(0, row - 1); r < row; r++) {
+      if (Math.abs(queens[r] - col) <= 1) return false;
+    }
+    return true;
+  }
+
+  function solve(row) {
+    if (row === n) return true;
+    for (let col = 0; col < n; col++) {
+      const region = regions[row][col];
+      if (usedCols.has(col) || usedRegions.has(region)) continue;
+      if (!isAdjacentSafe(row, col)) continue;
+      queens[row] = col;
+      usedCols.add(col);
+      usedRegions.add(region);
+      if (solve(row + 1)) return true;
+      queens[row] = -1;
+      usedCols.delete(col);
+      usedRegions.delete(region);
+    }
+    return false;
+  }
+
+  if (!solve(0)) return null;
+  return queens;
+}
+
+// ─── Puzzle Generator ───────────────────────────────────────────
+function generatePuzzle(size, seed) {
+  const rng = mulberry32(seed);
+  const regions = generateRandomPartition(size, rng);
+  if (!regions) return null;
+  if (countSolutions(size, regions, 2) !== 1) return null;
+  const solution = findSolution(size, regions);
+  return { size, regions, _solution: solution };
+}
+
+// ─── Level Configs (50 levels with pre-computed seeds) ──────────
+const LEVEL_CONFIGS = [];
+(function buildConfigs() {
+  for (let i = 0; i < 10; i++) LEVEL_CONFIGS.push({ size: 5 });
+  for (let i = 0; i < 10; i++) LEVEL_CONFIGS.push({ size: 6 });
+  for (let i = 0; i < 10; i++) LEVEL_CONFIGS.push({ size: 7 });
+  for (let i = 0; i < 10; i++) LEVEL_CONFIGS.push({ size: 8 });
+  for (let i = 0; i < 10; i++) LEVEL_CONFIGS.push({ size: 9 });
+})();
+
+// Pre-computed seeds that produce unique-solution puzzles
+const PUZZLE_SEEDS = [
+  1005, 1024, 1061, 1076, 1114, 1129, 1145, 1163, 1182, 1219,
+  1299, 1418, 1431, 1497, 1508, 1578, 1592, 1765, 1820, 1860,
+  2101, 2224, 2300, 2517, 2696, 2811, 2921, 3011, 3217, 3411,
+  4091, 4323, 5068, 5839, 5895, 5931, 6813, 8061, 9096, 9219,
+  9905, 11288, 12665, 15139, 15624, 16206, 17203, 18290, 18792, 19465,
+];
+
+const puzzleCache = {};
+function getPuzzle(index) {
+  if (puzzleCache[index]) return puzzleCache[index];
+  const cfg = LEVEL_CONFIGS[index];
+  const seed = PUZZLE_SEEDS[index];
+  let puzzle = generatePuzzle(cfg.size, seed);
+  if (!puzzle) {
+    // Fallback: search for a valid seed
+    let s = seed + 1;
+    let attempts = 0;
+    while (!puzzle && attempts < 5000) {
+      puzzle = generatePuzzle(cfg.size, s);
+      s++;
+      attempts++;
+    }
+  }
+  puzzleCache[index] = puzzle;
+  return puzzle;
+}
+
+// ─── Persistence (localStorage) ─────────────────────────────────
+const STORAGE_KEY = 'queens_progress';
+function loadProgress() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (data && data.completed) return { completed: new Set(data.completed), bestTimes: data.bestTimes || {} };
+  } catch(e) {}
+  return { completed: new Set(), bestTimes: {} };
+}
+function saveProgress() {
+  const data = { completed: [...completedLevels], bestTimes };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+const progress = loadProgress();
+
+// ─── Game State ─────────────────────────────────────────────────
+let currentLevel = 0;
+let puzzle = null;
+let placedQueens = []; // array of {row, col}
+let manualMarks = new Set(); // set of "row,col" strings for user-placed X marks
+let moveHistory = []; // for undo: array of {type, row, col}
+let timerInterval = null;
+let startTime = 0;
+let elapsed = 0;
+let timerRunning = false;
+let solved = false;
+let completedLevels = progress.completed;
+let bestTimes = progress.bestTimes;
+
+// ─── DOM refs ───────────────────────────────────────────────────
+const boardEl = document.getElementById('board');
+const timerEl = document.getElementById('timer');
+const messageEl = document.getElementById('message');
+const overlayEl = document.getElementById('overlay');
+const levelSelectorEl = document.getElementById('levelSelector');
+
+// ─── Level selector (paginated, 10 per page) ───────────────────
+const LEVELS_PER_PAGE = 10;
+let currentPage = 0;
+
+function buildLevelSelector() {
+  levelSelectorEl.innerHTML = '';
+  const totalPages = Math.ceil(LEVEL_CONFIGS.length / LEVELS_PER_PAGE);
+  currentPage = Math.floor(currentLevel / LEVELS_PER_PAGE);
+
+  if (totalPages > 1) {
+    const nav = document.createElement('div');
+    nav.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;justify-content:center;margin-bottom:6px;';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'btn btn-outline';
+    prevBtn.style.cssText = 'padding:4px 10px;font-size:12px;min-width:auto;';
+    prevBtn.textContent = '◀';
+    prevBtn.disabled = currentPage === 0;
+    prevBtn.addEventListener('click', () => { currentPage = Math.max(0, currentPage - 1); buildLevelButtons(); });
+
+    const label = document.createElement('span');
+    label.style.cssText = 'font-size:12px;color:var(--text-muted);min-width:60px;text-align:center;';
+    label.textContent = `${currentPage * LEVELS_PER_PAGE + 1}–${Math.min((currentPage + 1) * LEVELS_PER_PAGE, LEVEL_CONFIGS.length)}`;
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn btn-outline';
+    nextBtn.style.cssText = 'padding:4px 10px;font-size:12px;min-width:auto;';
+    nextBtn.textContent = '▶';
+    nextBtn.disabled = currentPage >= totalPages - 1;
+    nextBtn.addEventListener('click', () => { currentPage = Math.min(totalPages - 1, currentPage + 1); buildLevelButtons(); });
+
+    nav.appendChild(prevBtn);
+    nav.appendChild(label);
+    nav.appendChild(nextBtn);
+    levelSelectorEl.appendChild(nav);
+  }
+
+  buildLevelButtons();
+  document.getElementById('stats').textContent = `Completati: ${completedLevels.size}/${LEVEL_CONFIGS.length}`;
+}
+
+function buildLevelButtons() {
+  const nav = levelSelectorEl.querySelector('div');
+  const existingBtns = levelSelectorEl.querySelectorAll('.level-btn');
+  existingBtns.forEach(b => b.remove());
+
+  if (nav) {
+    const label = nav.querySelector('span');
+    if (label) label.textContent = `${currentPage * LEVELS_PER_PAGE + 1}–${Math.min((currentPage + 1) * LEVELS_PER_PAGE, LEVEL_CONFIGS.length)}`;
+    const btns = nav.querySelectorAll('button');
+    if (btns[0]) btns[0].disabled = currentPage === 0;
+    if (btns[1]) btns[1].disabled = currentPage >= Math.ceil(LEVEL_CONFIGS.length / LEVELS_PER_PAGE) - 1;
+  }
+
+  const start = currentPage * LEVELS_PER_PAGE;
+  const end = Math.min(start + LEVELS_PER_PAGE, LEVEL_CONFIGS.length);
+
+  for (let i = start; i < end; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'level-btn' + (i === currentLevel ? ' active' : '') + (completedLevels.has(i) ? ' completed' : '');
+    btn.textContent = i + 1;
+    if (completedLevels.has(i) && bestTimes[i]) {
+      btn.title = `Tempo: ${formatTime(bestTimes[i])}`;
+    }
+    btn.addEventListener('click', () => loadLevel(i));
+    levelSelectorEl.appendChild(btn);
+  }
+}
+
+// ─── Load Level ─────────────────────────────────────────────────
+function loadLevel(index) {
+  currentLevel = index;
+  puzzle = getPuzzle(index);
+
+  const maxGridPx = Math.min(window.innerWidth - 64, 420);
+  const idealSize = Math.floor(maxGridPx / puzzle.size);
+  const cellSize = Math.min(60, Math.max(36, idealSize));
+  document.documentElement.style.setProperty('--cell-size', cellSize + 'px');
+
+  placedQueens = [];
+  manualMarks = new Set();
+  moveHistory = [];
+  solved = false;
+  elapsed = 0;
+  stopTimer();
+  timerEl.textContent = '0:00';
+  hideMessage();
+  overlayEl.classList.remove('visible');
+  buildLevelSelector();
+  renderBoard();
+}
+
+// ─── Render Board ───────────────────────────────────────────────
+function renderBoard() {
+  const { size, regions } = puzzle;
+  boardEl.style.gridTemplateColumns = `repeat(${size}, var(--cell-size))`;
+  boardEl.style.gridTemplateRows = `repeat(${size}, var(--cell-size))`;
+  boardEl.innerHTML = '';
+
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+
+      const region = regions[r][c];
+      cell.style.backgroundColor = REGION_COLORS[region % REGION_COLORS.length];
+
+      // Region borders
+      if (r === 0 || regions[r-1][c] !== region) cell.classList.add('border-top');
+      if (r === size-1 || regions[r+1]?.[c] !== region) cell.classList.add('border-bottom');
+      if (c === 0 || regions[r][c-1] !== region) cell.classList.add('border-left');
+      if (c === size-1 || regions[r][c+1] !== region) cell.classList.add('border-right');
+
+      cell.addEventListener('click', () => onCellClick(r, c));
+
+      boardEl.appendChild(cell);
+    }
+  }
+
+  updateVisuals();
+}
+
+// ─── Cell Interaction (tap = X mark, double-tap = queen) ────────
+let lastTapTime = 0;
+let lastTapRow = -1;
+let lastTapCol = -1;
+let tapTimeout = null;
+
+function onCellClick(row, col) {
+  if (solved) return;
+
+  const now = Date.now();
+  const isDoubleTap = (now - lastTapTime < 350) && lastTapRow === row && lastTapCol === col;
+
+  lastTapTime = now;
+  lastTapRow = row;
+  lastTapCol = col;
+
+  if (isDoubleTap) {
+    // Double tap: place or remove queen
+    clearTimeout(tapTimeout);
+    handleQueenToggle(row, col);
+  } else {
+    // Single tap: delayed to distinguish from double tap
+    clearTimeout(tapTimeout);
+    tapTimeout = setTimeout(() => {
+      handleMarkToggle(row, col);
+    }, 250);
+  }
+}
+
+function handleQueenToggle(row, col) {
+  const key = `${row},${col}`;
+  const existingIdx = placedQueens.findIndex(q => q.row === row && q.col === col);
+
+  if (existingIdx >= 0) {
+    // Remove queen
+    placedQueens.splice(existingIdx, 1);
+    moveHistory.push({ type: 'removeQueen', row, col });
+  } else {
+    // Remove mark if present, then place queen
+    if (manualMarks.has(key)) {
+      manualMarks.delete(key);
+    }
+    placedQueens.push({ row, col });
+    moveHistory.push({ type: 'placeQueen', row, col });
+    if (!timerRunning) startTimer();
+  }
+
+  updateVisuals();
+
+  if (placedQueens.length === puzzle.size) {
+    checkWin();
+  }
+}
+
+function handleMarkToggle(row, col) {
+  // Don't toggle mark on cells that have a queen
+  const existingIdx = placedQueens.findIndex(q => q.row === row && q.col === col);
+  if (existingIdx >= 0) return;
+
+  const key = `${row},${col}`;
+  if (manualMarks.has(key)) {
+    manualMarks.delete(key);
+    moveHistory.push({ type: 'removeMark', row, col });
+  } else {
+    manualMarks.add(key);
+    moveHistory.push({ type: 'placeMark', row, col });
+    if (!timerRunning) startTimer();
+  }
+
+  updateVisuals();
+}
+
+// ─── Find Conflicts ─────────────────────────────────────────────
+function findConflicts() {
+  const conflicts = new Set();
+  const n = placedQueens.length;
+
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const a = placedQueens[i], b = placedQueens[j];
+
+      // Same row or column
+      if (a.row === b.row || a.col === b.col) {
+        conflicts.add(i);
+        conflicts.add(j);
+        continue;
+      }
+
+      // Adjacent (including diagonal)
+      if (Math.abs(a.row - b.row) <= 1 && Math.abs(a.col - b.col) <= 1) {
+        conflicts.add(i);
+        conflicts.add(j);
+        continue;
+      }
+
+      // Same region
+      if (puzzle.regions[a.row][a.col] === puzzle.regions[b.row][b.col]) {
+        conflicts.add(i);
+        conflicts.add(j);
+      }
+    }
+  }
+
+  return conflicts;
+}
+
+// ─── Update Visuals ─────────────────────────────────────────────
+function updateVisuals() {
+  const cells = boardEl.querySelectorAll('.cell');
+  const conflicts = findConflicts();
+  const queenMap = new Map();
+  placedQueens.forEach((q, i) => queenMap.set(`${q.row},${q.col}`, i));
+
+  // Build set of rows/cols/regions that have queens for X marks
+  const queenRows = new Set(placedQueens.map(q => q.row));
+  const queenCols = new Set(placedQueens.map(q => q.col));
+  const queenRegions = new Set(placedQueens.map(q => puzzle.regions[q.row][q.col]));
+
+  // Build set of cells adjacent to queens
+  const adjacentToQueen = new Set();
+  for (const q of placedQueens) {
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        adjacentToQueen.add(`${q.row + dr},${q.col + dc}`);
+      }
+    }
+  }
+
+  cells.forEach(cell => {
+    const r = parseInt(cell.dataset.row);
+    const c = parseInt(cell.dataset.col);
+    const key = `${r},${c}`;
+
+    // Remove old queen and classes
+    cell.classList.remove('conflict', 'x-mark', 'x-auto');
+    const oldQueen = cell.querySelector('.queen');
+    if (oldQueen) oldQueen.remove();
+
+    if (queenMap.has(key)) {
+      const queenEl = document.createElement('span');
+      queenEl.className = 'queen';
+      queenEl.textContent = '♛';
+      cell.appendChild(queenEl);
+
+      const qIdx = queenMap.get(key);
+      if (conflicts.has(qIdx)) {
+        cell.classList.add('conflict');
+      }
+    } else if (manualMarks.has(key)) {
+      // User-placed X mark
+      cell.classList.add('x-mark');
+    } else if (placedQueens.length > 0) {
+      // Auto X mark on excluded cells
+      const cellRegion = puzzle.regions[r][c];
+      if (queenRows.has(r) || queenCols.has(c) || queenRegions.has(cellRegion) || adjacentToQueen.has(key)) {
+        cell.classList.add('x-mark', 'x-auto');
+      }
+    }
+  });
+}
+
+// ─── Win Check ──────────────────────────────────────────────────
+function checkWin() {
+  if (placedQueens.length !== puzzle.size) return;
+
+  const conflicts = findConflicts();
+  if (conflicts.size > 0) return;
+
+  // Verify one queen per region
+  const regionQueens = new Set();
+  for (const q of placedQueens) {
+    const region = puzzle.regions[q.row][q.col];
+    if (regionQueens.has(region)) return;
+    regionQueens.add(region);
+  }
+  if (regionQueens.size !== puzzle.size) return;
+
+  // WIN!
+  solved = true;
+  stopTimer();
+  completedLevels.add(currentLevel);
+  if (!bestTimes[currentLevel] || elapsed < bestTimes[currentLevel]) {
+    bestTimes[currentLevel] = elapsed;
+  }
+  saveProgress();
+  buildLevelSelector();
+
+  showMessage('Complimenti! Puzzle risolto!', 'success');
+
+  const isNewBest = elapsed === bestTimes[currentLevel];
+  setTimeout(() => {
+    document.getElementById('modalTime').textContent = formatTime(elapsed);
+    document.getElementById('modalMsg').textContent = `Livello ${currentLevel + 1} completato!` + (isNewBest ? ' Nuovo record!' : '');
+    overlayEl.classList.add('visible');
+  }, 600);
+}
+
+// ─── Undo ───────────────────────────────────────────────────────
+function undo() {
+  if (moveHistory.length === 0 || solved) return;
+
+  const lastMove = moveHistory.pop();
+  const key = `${lastMove.row},${lastMove.col}`;
+
+  switch (lastMove.type) {
+    case 'placeQueen': {
+      const idx = placedQueens.findIndex(q => q.row === lastMove.row && q.col === lastMove.col);
+      if (idx >= 0) placedQueens.splice(idx, 1);
+      break;
+    }
+    case 'removeQueen':
+      placedQueens.push({ row: lastMove.row, col: lastMove.col });
+      break;
+    case 'placeMark':
+      manualMarks.delete(key);
+      break;
+    case 'removeMark':
+      manualMarks.add(key);
+      break;
+  }
+
+  updateVisuals();
+}
+
+// ─── Timer ──────────────────────────────────────────────────────
+function startTimer() {
+  if (timerRunning) return;
+  timerRunning = true;
+  startTime = Date.now() - elapsed;
+  timerInterval = setInterval(() => {
+    elapsed = Date.now() - startTime;
+    timerEl.textContent = formatTime(elapsed);
+  }, 100);
+}
+
+function stopTimer() {
+  timerRunning = false;
+  clearInterval(timerInterval);
+}
+
+function formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
+// ─── Messages ───────────────────────────────────────────────────
+function showMessage(text, type) {
+  messageEl.textContent = text;
+  messageEl.className = 'message visible ' + type;
+  setTimeout(() => hideMessage(), 3000);
+}
+
+function hideMessage() {
+  messageEl.classList.remove('visible');
+}
+
+// ─── Button handlers ────────────────────────────────────────────
+document.getElementById('btnUndo').addEventListener('click', undo);
+document.getElementById('btnReset').addEventListener('click', () => loadLevel(currentLevel));
+document.getElementById('btnNext').addEventListener('click', () => {
+  const next = (currentLevel + 1) % LEVEL_CONFIGS.length;
+  loadLevel(next);
+});
+document.getElementById('btnNewGame').addEventListener('click', () => {
+  const cfg = LEVEL_CONFIGS[currentLevel];
+  let p = null;
+  let seed = Date.now() & 0xFFFF;
+  let attempts = 0;
+  while (!p && attempts < 5000) {
+    p = generatePuzzle(cfg.size, seed);
+    seed++;
+    attempts++;
+  }
+  if (p) {
+    puzzleCache[currentLevel] = p;
+    loadLevel(currentLevel);
+  }
+});
+
+// Keyboard support
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    undo();
+  }
+});
+
+// ─── Init ───────────────────────────────────────────────────────
+const firstIncomplete = LEVEL_CONFIGS.findIndex((_, i) => !completedLevels.has(i));
+loadLevel(firstIncomplete >= 0 ? firstIncomplete : 0);
+</script>
+</body>
+</html>
