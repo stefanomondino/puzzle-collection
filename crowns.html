@@ -105,21 +105,20 @@
 
   .btn-primary:hover { background: #5a4bd6; }
 
-  .level-selector {
+  .diff-selector {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     padding: 4px 20px 12px;
-    flex-wrap: wrap;
     justify-content: center;
+    flex-wrap: wrap;
     max-width: 500px;
   }
 
-  .level-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+  .diff-btn {
+    border-radius: 20px;
     border: 2px solid #d9d9d9;
     background: var(--card);
+    padding: 6px 16px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -127,38 +126,19 @@
     color: var(--text);
   }
 
-  .level-btn.active {
+  .diff-btn.active {
     background: var(--primary);
     color: #fff;
     border-color: var(--primary);
   }
 
-  .level-btn.completed {
-    border-color: var(--success);
-    color: var(--success);
-    position: relative;
-  }
+  .diff-btn:hover:not(.active) { background: var(--primary-light); }
 
-  .level-btn.completed::after {
-    content: '✓';
-    position: absolute;
-    bottom: -2px;
-    right: -2px;
-    font-size: 10px;
-    background: var(--success);
-    color: #fff;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-  }
-
-  .level-btn.completed.active {
-    background: var(--success);
-    color: #fff;
+  .stats {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 0 20px 8px;
   }
 
   .board-container {
@@ -300,7 +280,6 @@
   <a href="index.html" style="position:absolute;left:16px;top:16px;color:var(--primary);text-decoration:none;font-size:18px;font-weight:600;">← Menu</a>
   <h1>Crowns</h1>
   <p>Posiziona le corone sulla scacchiera</p>
-  <p id="stats" style="font-size:12px;color:var(--text-muted);margin-top:4px;"></p>
 </header>
 
 <div class="toolbar">
@@ -309,11 +288,15 @@
   <button class="btn btn-outline" id="btnReset">⟳ Reset</button>
 </div>
 
-<div class="toolbar" style="padding-top:0">
-  <button class="btn btn-primary" id="btnNewGame" style="font-size:13px; padding: 6px 14px;">Nuovo puzzle</button>
+<div class="diff-selector" id="diffSelector">
+  <button class="diff-btn active" data-size="5">5×5</button>
+  <button class="diff-btn" data-size="6">6×6</button>
+  <button class="diff-btn" data-size="7">7×7</button>
+  <button class="diff-btn" data-size="8">8×8</button>
+  <button class="diff-btn" data-size="9">9×9</button>
 </div>
 
-<div class="level-selector" id="levelSelector"></div>
+<p class="stats" id="stats"></p>
 
 <div class="board-container" id="boardContainer">
   <div class="board" id="board"></div>
@@ -332,7 +315,7 @@
     <h2 id="modalTitle">Completato!</h2>
     <div class="time" id="modalTime">0:00</div>
     <p id="modalMsg">Hai risolto il puzzle!</p>
-    <button class="btn btn-primary" id="btnNext" style="margin-top:8px;">Livello successivo →</button>
+    <button class="btn btn-primary" id="btnNext" style="margin-top:8px;">Nuovo puzzle →</button>
   </div>
 </div>
 
@@ -357,15 +340,8 @@ function shuffleArray(arr, rng) {
 
 // ─── Region Colors ──────────────────────────────────────────────
 const REGION_COLORS = [
-  '#FFB3B3', // red
-  '#FFD699', // orange
-  '#FFF2A8', // yellow
-  '#B3E6B3', // green
-  '#A8D4FF', // blue
-  '#D4B3FF', // purple
-  '#FFB3D9', // pink
-  '#A8E6E6', // teal
-  '#E6CCAA', // brown
+  '#FFB3B3', '#FFD699', '#FFF2A8', '#B3E6B3', '#A8D4FF',
+  '#D4B3FF', '#FFB3D9', '#A8E6E6', '#E6CCAA',
 ];
 
 // ─── Random Partition Generator ─────────────────────────────────
@@ -504,73 +480,43 @@ function generatePuzzle(size, seed) {
   return { size, regions, _solution: solution };
 }
 
-// ─── Level Configs (50 levels with pre-computed seeds) ──────────
-const LEVEL_CONFIGS = [];
-(function buildConfigs() {
-  for (let i = 0; i < 10; i++) LEVEL_CONFIGS.push({ size: 5 });
-  for (let i = 0; i < 10; i++) LEVEL_CONFIGS.push({ size: 6 });
-  for (let i = 0; i < 10; i++) LEVEL_CONFIGS.push({ size: 7 });
-  for (let i = 0; i < 10; i++) LEVEL_CONFIGS.push({ size: 8 });
-  for (let i = 0; i < 10; i++) LEVEL_CONFIGS.push({ size: 9 });
-})();
-
-// Pre-computed seeds that produce unique-solution puzzles
-const PUZZLE_SEEDS = [
-  1005, 1024, 1061, 1076, 1114, 1129, 1145, 1163, 1182, 1219,
-  1299, 1418, 1431, 1497, 1508, 1578, 1592, 1765, 1820, 1860,
-  2101, 2224, 2300, 2517, 2696, 2811, 2921, 3011, 3217, 3411,
-  4091, 4323, 5068, 5839, 5895, 5931, 6813, 8061, 9096, 9219,
-  9905, 11288, 12665, 15139, 15624, 16206, 17203, 18290, 18792, 19465,
-];
-
-const puzzleCache = {};
-function getPuzzle(index) {
-  if (puzzleCache[index]) return puzzleCache[index];
-  const cfg = LEVEL_CONFIGS[index];
-  const seed = PUZZLE_SEEDS[index];
-  let puzzle = generatePuzzle(cfg.size, seed);
-  if (!puzzle) {
-    // Fallback: search for a valid seed
-    let s = seed + 1;
-    let attempts = 0;
-    while (!puzzle && attempts < 5000) {
-      puzzle = generatePuzzle(cfg.size, s);
-      s++;
-      attempts++;
-    }
+function generateRandomPuzzle(size) {
+  let seed = (Date.now() ^ (Math.random() * 0xFFFF)) & 0xFFFFFF;
+  let puzzle = null;
+  let attempts = 0;
+  while (!puzzle && attempts < 5000) {
+    puzzle = generatePuzzle(size, seed);
+    seed++;
+    attempts++;
   }
-  puzzleCache[index] = puzzle;
   return puzzle;
 }
 
 // ─── Persistence (localStorage) ─────────────────────────────────
-const STORAGE_KEY = 'queens_progress';
-function loadProgress() {
+const STORAGE_KEY = 'crowns_stats';
+function loadStats() {
   try {
     const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (data && data.completed) return { completed: new Set(data.completed), bestTimes: data.bestTimes || {} };
+    if (data) return data;
   } catch(e) {}
-  return { completed: new Set(), bestTimes: {} };
+  return { gamesWon: {5:0,6:0,7:0,8:0,9:0}, bestTimes: {5:null,6:null,7:null,8:null,9:null} };
 }
-function saveProgress() {
-  const data = { completed: [...completedLevels], bestTimes };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+function saveStats() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
 }
-const progress = loadProgress();
+let stats = loadStats();
 
 // ─── Game State ─────────────────────────────────────────────────
-let currentLevel = 0;
+let currentSize = 5;
 let puzzle = null;
-let placedQueens = []; // array of {row, col}
-let manualMarks = new Set(); // set of "row,col" strings for user-placed X marks
-let moveHistory = []; // for undo: array of {type, row, col}
+let placedQueens = [];
+let manualMarks = new Set();
+let moveHistory = [];
 let timerInterval = null;
 let startTime = 0;
 let elapsed = 0;
 let timerRunning = false;
 let solved = false;
-let completedLevels = progress.completed;
-let bestTimes = progress.bestTimes;
 
 // ─── DOM refs ───────────────────────────────────────────────────
 const boardEl = document.getElementById('board');
@@ -578,81 +524,35 @@ const boardContainer = document.getElementById('boardContainer');
 const timerEl = document.getElementById('timer');
 const messageEl = document.getElementById('message');
 const overlayEl = document.getElementById('overlay');
-const levelSelectorEl = document.getElementById('levelSelector');
+const statsEl = document.getElementById('stats');
 
-// ─── Level selector (paginated, 10 per page) ───────────────────
-const LEVELS_PER_PAGE = 10;
-let currentPage = 0;
+// ─── Difficulty Selector ────────────────────────────────────────
+const diffBtns = document.querySelectorAll('.diff-btn');
+diffBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const size = parseInt(btn.dataset.size);
+    currentSize = size;
+    diffBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    newGame();
+  });
+});
 
-function buildLevelSelector() {
-  levelSelectorEl.innerHTML = '';
-  const totalPages = Math.ceil(LEVEL_CONFIGS.length / LEVELS_PER_PAGE);
-  currentPage = Math.floor(currentLevel / LEVELS_PER_PAGE);
-
-  if (totalPages > 1) {
-    const nav = document.createElement('div');
-    nav.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;justify-content:center;margin-bottom:6px;';
-
-    const prevBtn = document.createElement('button');
-    prevBtn.className = 'btn btn-outline';
-    prevBtn.style.cssText = 'padding:4px 10px;font-size:12px;min-width:auto;';
-    prevBtn.textContent = '◀';
-    prevBtn.disabled = currentPage === 0;
-    prevBtn.addEventListener('click', () => { currentPage = Math.max(0, currentPage - 1); buildLevelButtons(); });
-
-    const label = document.createElement('span');
-    label.style.cssText = 'font-size:12px;color:var(--text-muted);min-width:60px;text-align:center;';
-    label.textContent = `${currentPage * LEVELS_PER_PAGE + 1}–${Math.min((currentPage + 1) * LEVELS_PER_PAGE, LEVEL_CONFIGS.length)}`;
-
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'btn btn-outline';
-    nextBtn.style.cssText = 'padding:4px 10px;font-size:12px;min-width:auto;';
-    nextBtn.textContent = '▶';
-    nextBtn.disabled = currentPage >= totalPages - 1;
-    nextBtn.addEventListener('click', () => { currentPage = Math.min(totalPages - 1, currentPage + 1); buildLevelButtons(); });
-
-    nav.appendChild(prevBtn);
-    nav.appendChild(label);
-    nav.appendChild(nextBtn);
-    levelSelectorEl.appendChild(nav);
-  }
-
-  buildLevelButtons();
-  document.getElementById('stats').textContent = `Completati: ${completedLevels.size}/${LEVEL_CONFIGS.length}`;
+function updateStats() {
+  const won = stats.gamesWon[currentSize] || 0;
+  const best = stats.bestTimes[currentSize];
+  let text = `${currentSize}\u00D7${currentSize} \u2014 Vinti: ${won}`;
+  if (best) text += ` \u00B7 Record: ${formatTime(best)}`;
+  statsEl.textContent = text;
 }
 
-function buildLevelButtons() {
-  const nav = levelSelectorEl.querySelector('div');
-  const existingBtns = levelSelectorEl.querySelectorAll('.level-btn');
-  existingBtns.forEach(b => b.remove());
-
-  if (nav) {
-    const label = nav.querySelector('span');
-    if (label) label.textContent = `${currentPage * LEVELS_PER_PAGE + 1}–${Math.min((currentPage + 1) * LEVELS_PER_PAGE, LEVEL_CONFIGS.length)}`;
-    const btns = nav.querySelectorAll('button');
-    if (btns[0]) btns[0].disabled = currentPage === 0;
-    if (btns[1]) btns[1].disabled = currentPage >= Math.ceil(LEVEL_CONFIGS.length / LEVELS_PER_PAGE) - 1;
+// ─── New Game ───────────────────────────────────────────────────
+function newGame() {
+  puzzle = generateRandomPuzzle(currentSize);
+  if (!puzzle) {
+    showMessage('Errore nel generare il puzzle', 'error');
+    return;
   }
-
-  const start = currentPage * LEVELS_PER_PAGE;
-  const end = Math.min(start + LEVELS_PER_PAGE, LEVEL_CONFIGS.length);
-
-  for (let i = start; i < end; i++) {
-    const btn = document.createElement('button');
-    btn.className = 'level-btn' + (i === currentLevel ? ' active' : '') + (completedLevels.has(i) ? ' completed' : '');
-    btn.textContent = i + 1;
-    if (completedLevels.has(i) && bestTimes[i]) {
-      btn.title = `Tempo: ${formatTime(bestTimes[i])}`;
-    }
-    btn.addEventListener('click', () => loadLevel(i));
-    levelSelectorEl.appendChild(btn);
-  }
-}
-
-// ─── Load Level ─────────────────────────────────────────────────
-function loadLevel(index) {
-  currentLevel = index;
-  puzzle = getPuzzle(index);
 
   const maxGridPx = Math.min(window.innerWidth - 64, 420);
   const idealSize = Math.floor(maxGridPx / puzzle.size);
@@ -668,7 +568,7 @@ function loadLevel(index) {
   timerEl.textContent = '0:00';
   hideMessage();
   overlayEl.classList.remove('visible');
-  buildLevelSelector();
+  updateStats();
   renderBoard();
 }
 
@@ -689,7 +589,6 @@ function renderBoard() {
       const region = regions[r][c];
       cell.style.backgroundColor = REGION_COLORS[region % REGION_COLORS.length];
 
-      // Region borders
       if (r === 0 || regions[r-1][c] !== region) cell.classList.add('border-top');
       if (r === size-1 || regions[r+1]?.[c] !== region) cell.classList.add('border-bottom');
       if (c === 0 || regions[r][c-1] !== region) cell.classList.add('border-left');
@@ -703,16 +602,15 @@ function renderBoard() {
 }
 
 // ─── Cell Interaction ────────────────────────────────────────────
-// Tap = toggle X mark, double-tap = toggle queen, drag = paint X marks
 let lastTapTime = 0;
 let lastTapRow = -1;
 let lastTapCol = -1;
 let tapTimeout = null;
 let isDragging = false;
-let dragStartCell = null;   // {row, col} of the cell where pointer went down
-let dragMoved = false;       // did the pointer move to a different cell?
-let dragMode = null;         // 'add' or 'remove' — decided by first cell's state
-let dragBatch = [];          // cells affected during this drag for undo grouping
+let dragStartCell = null;
+let dragMoved = false;
+let dragMode = null;
+let dragBatch = [];
 
 function getCellFromPoint(x, y) {
   const el = document.elementFromPoint(x, y);
@@ -738,11 +636,9 @@ function onPointerDown(e) {
   dragStartCell = cell;
   dragBatch = [];
 
-  // Decide drag mode based on first cell: if it has no mark, we'll add marks; if it has one, we'll remove
   const key = `${cell.row},${cell.col}`;
   const hasQueen = placedQueens.some(q => q.row === cell.row && q.col === cell.col);
   if (hasQueen) {
-    // Don't drag on queen cells
     dragMode = null;
   } else if (manualMarks.has(key)) {
     dragMode = 'remove';
@@ -757,12 +653,10 @@ function onPointerMove(e) {
   const cell = getCellFromPoint(e.clientX, e.clientY);
   if (!cell) return;
 
-  // Did we move to a different cell than where we started?
   if (cell.row !== dragStartCell.row || cell.col !== dragStartCell.col) {
     dragMoved = true;
   }
 
-  // If we've moved, apply mark to the start cell too (on first move)
   if (dragMoved && dragBatch.length === 0) {
     applyDragMark(dragStartCell.row, dragStartCell.col);
   }
@@ -772,9 +666,7 @@ function onPointerMove(e) {
 
 function applyDragMark(row, col) {
   const key = `${row},${col}`;
-  // Skip cells with queens
   if (placedQueens.some(q => q.row === row && q.col === col)) return;
-  // Skip already processed cells in this drag
   if (dragBatch.some(b => b.row === row && b.col === col)) return;
 
   if (dragMode === 'add' && !manualMarks.has(key)) {
@@ -794,10 +686,8 @@ function onPointerUp(e) {
   isDragging = false;
 
   if (dragMoved && dragBatch.length > 0) {
-    // Drag completed: save batch as single undo entry
     moveHistory.push({ type: dragMode === 'add' ? 'placeBatch' : 'removeBatch', cells: [...dragBatch] });
   } else if (!dragMoved && dragStartCell) {
-    // No drag: treat as tap (with double-tap detection)
     handleTap(dragStartCell.row, dragStartCell.col);
   }
 
@@ -876,21 +766,18 @@ function findConflicts() {
     for (let j = i + 1; j < n; j++) {
       const a = placedQueens[i], b = placedQueens[j];
 
-      // Same row or column
       if (a.row === b.row || a.col === b.col) {
         conflicts.add(i);
         conflicts.add(j);
         continue;
       }
 
-      // Adjacent (including diagonal)
       if (Math.abs(a.row - b.row) <= 1 && Math.abs(a.col - b.col) <= 1) {
         conflicts.add(i);
         conflicts.add(j);
         continue;
       }
 
-      // Same region
       if (puzzle.regions[a.row][a.col] === puzzle.regions[b.row][b.col]) {
         conflicts.add(i);
         conflicts.add(j);
@@ -908,12 +795,10 @@ function updateVisuals() {
   const queenMap = new Map();
   placedQueens.forEach((q, i) => queenMap.set(`${q.row},${q.col}`, i));
 
-  // Build set of rows/cols/regions that have queens for X marks
   const queenRows = new Set(placedQueens.map(q => q.row));
   const queenCols = new Set(placedQueens.map(q => q.col));
   const queenRegions = new Set(placedQueens.map(q => puzzle.regions[q.row][q.col]));
 
-  // Build set of cells adjacent to queens
   const adjacentToQueen = new Set();
   for (const q of placedQueens) {
     for (let dr = -1; dr <= 1; dr++) {
@@ -929,7 +814,6 @@ function updateVisuals() {
     const c = parseInt(cell.dataset.col);
     const key = `${r},${c}`;
 
-    // Remove old queen and classes
     cell.classList.remove('conflict', 'x-mark', 'x-auto');
     const oldQueen = cell.querySelector('.queen');
     if (oldQueen) oldQueen.remove();
@@ -945,10 +829,8 @@ function updateVisuals() {
         cell.classList.add('conflict');
       }
     } else if (manualMarks.has(key)) {
-      // User-placed X mark
       cell.classList.add('x-mark');
     } else if (placedQueens.length > 0) {
-      // Auto X mark on excluded cells
       const cellRegion = puzzle.regions[r][c];
       if (queenRows.has(r) || queenCols.has(c) || queenRegions.has(cellRegion) || adjacentToQueen.has(key)) {
         cell.classList.add('x-mark', 'x-auto');
@@ -964,7 +846,6 @@ function checkWin() {
   const conflicts = findConflicts();
   if (conflicts.size > 0) return;
 
-  // Verify one queen per region
   const regionQueens = new Set();
   for (const q of placedQueens) {
     const region = puzzle.regions[q.row][q.col];
@@ -976,19 +857,20 @@ function checkWin() {
   // WIN!
   solved = true;
   stopTimer();
-  completedLevels.add(currentLevel);
-  if (!bestTimes[currentLevel] || elapsed < bestTimes[currentLevel]) {
-    bestTimes[currentLevel] = elapsed;
+
+  stats.gamesWon[currentSize] = (stats.gamesWon[currentSize] || 0) + 1;
+  if (!stats.bestTimes[currentSize] || elapsed < stats.bestTimes[currentSize]) {
+    stats.bestTimes[currentSize] = elapsed;
   }
-  saveProgress();
-  buildLevelSelector();
+  saveStats();
+  updateStats();
 
   showMessage('Complimenti! Puzzle risolto!', 'success');
 
-  const isNewBest = elapsed === bestTimes[currentLevel];
+  const isNewBest = elapsed === stats.bestTimes[currentSize];
   setTimeout(() => {
     document.getElementById('modalTime').textContent = formatTime(elapsed);
-    document.getElementById('modalMsg').textContent = `Livello ${currentLevel + 1} completato!` + (isNewBest ? ' Nuovo record!' : '');
+    document.getElementById('modalMsg').textContent = `${currentSize}\u00D7${currentSize} completato!` + (isNewBest ? ' Nuovo record!' : '');
     overlayEl.classList.add('visible');
   }, 600);
 }
@@ -1061,26 +943,8 @@ function hideMessage() {
 
 // ─── Button handlers ────────────────────────────────────────────
 document.getElementById('btnUndo').addEventListener('click', undo);
-document.getElementById('btnReset').addEventListener('click', () => loadLevel(currentLevel));
-document.getElementById('btnNext').addEventListener('click', () => {
-  const next = (currentLevel + 1) % LEVEL_CONFIGS.length;
-  loadLevel(next);
-});
-document.getElementById('btnNewGame').addEventListener('click', () => {
-  const cfg = LEVEL_CONFIGS[currentLevel];
-  let p = null;
-  let seed = Date.now() & 0xFFFF;
-  let attempts = 0;
-  while (!p && attempts < 5000) {
-    p = generatePuzzle(cfg.size, seed);
-    seed++;
-    attempts++;
-  }
-  if (p) {
-    puzzleCache[currentLevel] = p;
-    loadLevel(currentLevel);
-  }
-});
+document.getElementById('btnReset').addEventListener('click', () => newGame());
+document.getElementById('btnNext').addEventListener('click', () => newGame());
 
 // Keyboard support
 document.addEventListener('keydown', (e) => {
@@ -1091,8 +955,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ─── Init ───────────────────────────────────────────────────────
-const firstIncomplete = LEVEL_CONFIGS.findIndex((_, i) => !completedLevels.has(i));
-loadLevel(firstIncomplete >= 0 ? firstIncomplete : 0);
+newGame();
 </script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
 </body>

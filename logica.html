@@ -107,60 +107,40 @@
 
   .btn-primary:hover { background: #5a4bd6; }
 
-  .level-selector {
+  .diff-selector {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     padding: 4px 20px 12px;
-    flex-wrap: wrap;
     justify-content: center;
+    flex-wrap: wrap;
     max-width: 500px;
   }
 
-  .level-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+  .diff-btn {
+    border-radius: 20px;
     border: 2px solid #d9d9d9;
     background: var(--card);
-    font-size: 14px;
+    padding: 6px 14px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s;
     color: var(--text);
   }
 
-  .level-btn.active {
+  .diff-btn.active {
     background: var(--primary);
     color: #fff;
     border-color: var(--primary);
   }
 
-  .level-btn.completed {
-    border-color: var(--success);
-    color: var(--success);
-    position: relative;
-  }
+  .diff-btn:hover:not(.active) { background: var(--primary-light); }
 
-  .level-btn.completed::after {
-    content: '\2713';
-    position: absolute;
-    bottom: -2px;
-    right: -2px;
-    font-size: 10px;
-    background: var(--success);
-    color: #fff;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-  }
-
-  .level-btn.completed.active {
-    background: var(--success);
-    color: #fff;
+  .stats {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 0 20px 8px;
   }
 
   .board-container {
@@ -217,7 +197,6 @@
 
   .cell:active { filter: brightness(0.95); }
 
-  /* Notes (pencil marks) */
   .notes-grid {
     display: grid;
     width: 100%;
@@ -240,19 +219,16 @@
     line-height: 1;
   }
 
-  /* Sudoku grid borders */
   .cell {
     border-right: 1px solid #d0cdc8;
     border-bottom: 1px solid #d0cdc8;
   }
 
-  /* Thick borders for box boundaries - applied via JS classes */
   .cell.box-right { border-right: 2px solid #555; }
   .cell.box-bottom { border-bottom: 2px solid #555; }
   .cell.box-left { border-left: 2px solid #555; }
   .cell.box-top { border-top: 2px solid #555; }
 
-  /* Number pad */
   .numpad {
     display: flex;
     gap: 6px;
@@ -355,7 +331,6 @@
   <a href="index.html" style="position:absolute;left:16px;top:16px;color:var(--primary);text-decoration:none;font-size:18px;font-weight:600;">&larr; Menu</a>
   <h1>Logica</h1>
   <p>Riempi la griglia con i numeri</p>
-  <p id="stats" style="font-size:12px;color:var(--text-muted);margin-top:4px;"></p>
 </header>
 
 <div class="toolbar">
@@ -364,7 +339,14 @@
   <button class="btn btn-outline" id="btnReset">&#10227; Reset</button>
 </div>
 
-<div class="level-selector" id="levelSelector"></div>
+<div class="diff-selector" id="diffSelector">
+  <button class="diff-btn active" data-diff="6easy">6×6</button>
+  <button class="diff-btn" data-diff="9easy">9×9 Facile</button>
+  <button class="diff-btn" data-diff="9medium">9×9 Medio</button>
+  <button class="diff-btn" data-diff="9hard">9×9 Difficile</button>
+</div>
+
+<p class="stats" id="stats"></p>
 
 <div class="board-container" id="boardContainer">
   <div class="board" id="board"></div>
@@ -384,7 +366,7 @@
     <h2 id="modalTitle">Completato!</h2>
     <div class="time" id="modalTime">0:00</div>
     <p id="modalMsg">Hai risolto il puzzle!</p>
-    <button class="btn btn-primary" id="btnNext" style="margin-top:8px;">Livello successivo &rarr;</button>
+    <button class="btn btn-primary" id="btnNext" style="margin-top:8px;">Nuovo puzzle &rarr;</button>
   </div>
 </div>
 
@@ -407,29 +389,28 @@ function shuffleArray(arr, rng) {
   return arr;
 }
 
+// ─── Difficulty Configs ─────────────────────────────────────────
+const DIFF_CONFIGS = {
+  '6easy':   { gridSize: 6, clues: 16, label: '6\u00D76' },
+  '9easy':   { gridSize: 9, clues: 38, label: '9\u00D79 Facile' },
+  '9medium': { gridSize: 9, clues: 30, label: '9\u00D79 Medio' },
+  '9hard':   { gridSize: 9, clues: 26, label: '9\u00D79 Difficile' },
+};
+
 // ─── Sudoku Logic ──────────────────────────────────────────────
-// Box dimensions: for 9x9 → 3x3 boxes; for 6x6 → 3x2 boxes
 function getBoxDims(gridSize) {
   if (gridSize === 9) return { boxRows: 3, boxCols: 3 };
   if (gridSize === 6) return { boxRows: 2, boxCols: 3 };
   return { boxRows: 1, boxCols: gridSize };
 }
 
-function getBoxIndex(r, c, boxRows, boxCols) {
-  return Math.floor(r / boxRows) * (boxCols === 3 && boxRows === 3 ? 3 : boxRows === 2 ? 3 : 1) + Math.floor(c / boxCols);
-}
-
-// Check if placing val at (row, col) is valid
 function isValid(grid, gridSize, row, col, val, boxRows, boxCols) {
-  // Row check
   for (let c = 0; c < gridSize; c++) {
     if (c !== col && grid[row][c] === val) return false;
   }
-  // Column check
   for (let r = 0; r < gridSize; r++) {
     if (r !== row && grid[r][col] === val) return false;
   }
-  // Box check
   const br = Math.floor(row / boxRows) * boxRows;
   const bc = Math.floor(col / boxCols) * boxCols;
   for (let r = br; r < br + boxRows; r++) {
@@ -476,7 +457,6 @@ function countSolutions(grid, gridSize, maxCount) {
   const board = grid.map(row => [...row]);
   let count = 0;
 
-  // Find empty cells
   const empties = [];
   for (let r = 0; r < gridSize; r++) {
     for (let c = 0; c < gridSize; c++) {
@@ -511,7 +491,6 @@ function generatePuzzle(gridSize, numClues, seed) {
   const totalCells = gridSize * gridSize;
   const toRemove = totalCells - numClues;
 
-  // Create shuffled list of cell positions
   const positions = [];
   for (let r = 0; r < gridSize; r++) {
     for (let c = 0; c < gridSize; c++) {
@@ -529,79 +508,50 @@ function generatePuzzle(gridSize, numClues, seed) {
     if (countSolutions(puzzle, gridSize, 2) === 1) {
       removed++;
     } else {
-      puzzle[r][c] = backup; // restore - removal breaks uniqueness
+      puzzle[r][c] = backup;
     }
   }
 
-  // If we couldn't remove enough, still return what we have
   return { gridSize, solution, puzzle };
 }
 
-// ─── Level Configs (50 levels) ──────────────────────────────────
-const LEVEL_CONFIGS = [];
-(function buildConfigs() {
-  // Levels 1-15: 6x6, easy to medium
-  for (let i = 0; i < 5; i++)  LEVEL_CONFIGS.push({ gridSize: 6, clues: 20 });
-  for (let i = 0; i < 5; i++)  LEVEL_CONFIGS.push({ gridSize: 6, clues: 16 });
-  for (let i = 0; i < 5; i++)  LEVEL_CONFIGS.push({ gridSize: 6, clues: 13 });
-  // Levels 16-30: 9x9, easy
-  for (let i = 0; i < 8; i++)  LEVEL_CONFIGS.push({ gridSize: 9, clues: 40 });
-  for (let i = 0; i < 7; i++)  LEVEL_CONFIGS.push({ gridSize: 9, clues: 35 });
-  // Levels 31-42: 9x9, medium
-  for (let i = 0; i < 12; i++) LEVEL_CONFIGS.push({ gridSize: 9, clues: 30 });
-  // Levels 43-50: 9x9, hard
-  for (let i = 0; i < 8; i++)  LEVEL_CONFIGS.push({ gridSize: 9, clues: 26 });
-})();
-
-// Pre-computed seeds
-const PUZZLE_SEEDS = [];
-(function findSeeds() {
-  for (let i = 0; i < 50; i++) {
-    PUZZLE_SEEDS.push(3000 + i * 211);
-  }
-})();
-
-const puzzleCache = {};
-function getPuzzle(index) {
-  if (puzzleCache[index]) return puzzleCache[index];
-  const cfg = LEVEL_CONFIGS[index];
-  let seed = PUZZLE_SEEDS[index];
-  let p = null;
+function generateRandomPuzzle(diffKey) {
+  const cfg = DIFF_CONFIGS[diffKey];
+  let seed = (Date.now() ^ (Math.random() * 0xFFFF)) & 0xFFFFFF;
+  let puzzle = null;
   let attempts = 0;
-  while (!p && attempts < 200) {
-    p = generatePuzzle(cfg.gridSize, cfg.clues, seed);
-    if (!p) seed += 7;
+  while (!puzzle && attempts < 200) {
+    puzzle = generatePuzzle(cfg.gridSize, cfg.clues, seed);
+    if (!puzzle) seed += 7;
     attempts++;
   }
-  if (p) {
-    PUZZLE_SEEDS[index] = seed;
-    puzzleCache[index] = p;
-  }
-  return p;
+  return puzzle;
 }
 
 // ─── Persistence ────────────────────────────────────────────────
-const STORAGE_KEY = 'logica_progress';
-function loadProgress() {
+const STORAGE_KEY = 'logica_stats';
+function loadStats() {
   try {
     const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (data && data.completed) return { completed: new Set(data.completed), bestTimes: data.bestTimes || {} };
+    if (data && data.gamesWon) return data;
   } catch(e) {}
-  return { completed: new Set(), bestTimes: {} };
+  return {
+    gamesWon: {'6easy':0,'9easy':0,'9medium':0,'9hard':0},
+    bestTimes: {'6easy':null,'9easy':null,'9medium':null,'9hard':null}
+  };
 }
-function saveProgress() {
-  const data = { completed: [...completedLevels], bestTimes };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+function saveStats() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
 }
-const progress = loadProgress();
+let stats = loadStats();
 
 // ─── Game State ─────────────────────────────────────────────────
-let currentLevel = 0;
+let currentDiff = '6easy';
 let puzzleData = null;
-let board = [];        // player's current board (0 = empty)
-let notes = [];        // 2D array of Sets (pencil marks)
-let givenSet = null;   // set of "r,c" for given cells
-let selectedCell = null; // {row, col} or null
+let board = [];
+let notes = [];
+let givenSet = null;
+let selectedCell = null;
 let notesMode = false;
 let moveHistory = [];
 let timerInterval = null;
@@ -609,8 +559,6 @@ let startTime = 0;
 let elapsed = 0;
 let timerRunning = false;
 let solved = false;
-let completedLevels = progress.completed;
-let bestTimes = progress.bestTimes;
 
 // ─── DOM refs ───────────────────────────────────────────────────
 const boardEl = document.getElementById('board');
@@ -618,82 +566,32 @@ const boardContainer = document.getElementById('boardContainer');
 const timerEl = document.getElementById('timer');
 const messageEl = document.getElementById('message');
 const overlayEl = document.getElementById('overlay');
-const levelSelectorEl = document.getElementById('levelSelector');
 const numpadEl = document.getElementById('numpad');
+const statsEl = document.getElementById('stats');
 
-// ─── Level selector (paginated, 10 per page) ───────────────────
-const LEVELS_PER_PAGE = 10;
-let currentPage = 0;
+// ─── Difficulty Selector ────────────────────────────────────────
+const diffBtns = document.querySelectorAll('.diff-btn');
+diffBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentDiff = btn.dataset.diff;
+    diffBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    newGame();
+  });
+});
 
-function buildLevelSelector() {
-  levelSelectorEl.innerHTML = '';
-  const totalPages = Math.ceil(LEVEL_CONFIGS.length / LEVELS_PER_PAGE);
-  currentPage = Math.floor(currentLevel / LEVELS_PER_PAGE);
-
-  if (totalPages > 1) {
-    const nav = document.createElement('div');
-    nav.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;justify-content:center;margin-bottom:6px;';
-
-    const prevBtn = document.createElement('button');
-    prevBtn.className = 'btn btn-outline';
-    prevBtn.style.cssText = 'padding:4px 10px;font-size:12px;min-width:auto;';
-    prevBtn.textContent = '\u25C0';
-    prevBtn.disabled = currentPage === 0;
-    prevBtn.addEventListener('click', () => { currentPage = Math.max(0, currentPage - 1); buildLevelButtons(); });
-
-    const label = document.createElement('span');
-    label.style.cssText = 'font-size:12px;color:var(--text-muted);min-width:60px;text-align:center;';
-    label.textContent = `${currentPage * LEVELS_PER_PAGE + 1}\u2013${Math.min((currentPage + 1) * LEVELS_PER_PAGE, LEVEL_CONFIGS.length)}`;
-
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'btn btn-outline';
-    nextBtn.style.cssText = 'padding:4px 10px;font-size:12px;min-width:auto;';
-    nextBtn.textContent = '\u25B6';
-    nextBtn.disabled = currentPage >= totalPages - 1;
-    nextBtn.addEventListener('click', () => { currentPage = Math.min(totalPages - 1, currentPage + 1); buildLevelButtons(); });
-
-    nav.appendChild(prevBtn);
-    nav.appendChild(label);
-    nav.appendChild(nextBtn);
-    levelSelectorEl.appendChild(nav);
-  }
-
-  buildLevelButtons();
-  document.getElementById('stats').textContent = `Completati: ${completedLevels.size}/${LEVEL_CONFIGS.length}`;
+function updateStatsDisplay() {
+  const cfg = DIFF_CONFIGS[currentDiff];
+  const won = stats.gamesWon[currentDiff] || 0;
+  const best = stats.bestTimes[currentDiff];
+  let text = `${cfg.label} \u2014 Vinti: ${won}`;
+  if (best) text += ` \u00B7 Record: ${formatTime(best)}`;
+  statsEl.textContent = text;
 }
 
-function buildLevelButtons() {
-  const nav = levelSelectorEl.querySelector('div');
-  const existingBtns = levelSelectorEl.querySelectorAll('.level-btn');
-  existingBtns.forEach(b => b.remove());
-
-  if (nav) {
-    const label = nav.querySelector('span');
-    if (label) label.textContent = `${currentPage * LEVELS_PER_PAGE + 1}\u2013${Math.min((currentPage + 1) * LEVELS_PER_PAGE, LEVEL_CONFIGS.length)}`;
-    const btns = nav.querySelectorAll('button');
-    if (btns[0]) btns[0].disabled = currentPage === 0;
-    if (btns[1]) btns[1].disabled = currentPage >= Math.ceil(LEVEL_CONFIGS.length / LEVELS_PER_PAGE) - 1;
-  }
-
-  const start = currentPage * LEVELS_PER_PAGE;
-  const end = Math.min(start + LEVELS_PER_PAGE, LEVEL_CONFIGS.length);
-
-  for (let i = start; i < end; i++) {
-    const btn = document.createElement('button');
-    btn.className = 'level-btn' + (i === currentLevel ? ' active' : '') + (completedLevels.has(i) ? ' completed' : '');
-    btn.textContent = i + 1;
-    if (completedLevels.has(i) && bestTimes[i]) {
-      btn.title = `Tempo: ${formatTime(bestTimes[i])}`;
-    }
-    btn.addEventListener('click', () => loadLevel(i));
-    levelSelectorEl.appendChild(btn);
-  }
-}
-
-// ─── Load Level ─────────────────────────────────────────────────
-function loadLevel(index) {
-  currentLevel = index;
-  puzzleData = getPuzzle(index);
+// ─── New Game ───────────────────────────────────────────────────
+function newGame() {
+  puzzleData = generateRandomPuzzle(currentDiff);
 
   if (!puzzleData) {
     showMessage('Errore nel generare il puzzle', 'error');
@@ -702,7 +600,6 @@ function loadLevel(index) {
 
   const { gridSize, puzzle } = puzzleData;
 
-  // Compute cell size
   const maxGridPx = Math.min(window.innerWidth - 64, 420);
   const idealSize = Math.floor(maxGridPx / gridSize);
   const cellSize = Math.min(gridSize === 6 ? 60 : 44, Math.max(30, idealSize));
@@ -727,7 +624,7 @@ function loadLevel(index) {
   timerEl.textContent = '0:00';
   hideMessage();
   overlayEl.classList.remove('visible');
-  buildLevelSelector();
+  updateStatsDisplay();
   buildNumpad();
   renderBoard();
 }
@@ -748,7 +645,6 @@ function renderBoard() {
       cell.dataset.row = r;
       cell.dataset.col = c;
 
-      // Box borders
       if ((c + 1) % boxCols === 0 && c < gridSize - 1) cell.classList.add('box-right');
       if ((r + 1) % boxRows === 0 && r < gridSize - 1) cell.classList.add('box-bottom');
       if (c % boxCols === 0) cell.classList.add('box-left');
@@ -775,7 +671,6 @@ function buildNumpad() {
     numpadEl.appendChild(btn);
   }
 
-  // Erase button
   const eraseBtn = document.createElement('button');
   eraseBtn.className = 'numpad-btn erase';
   eraseBtn.innerHTML = '&#10005;';
@@ -783,7 +678,6 @@ function buildNumpad() {
   eraseBtn.addEventListener('click', () => placeNumber(0));
   numpadEl.appendChild(eraseBtn);
 
-  // Notes toggle
   const notesBtn = document.createElement('button');
   notesBtn.className = 'numpad-btn notes-toggle';
   notesBtn.id = 'notesToggle';
@@ -822,12 +716,10 @@ function placeNumber(num) {
   if (!timerRunning) startTimer();
 
   if (notesMode && num !== 0) {
-    // Toggle note
     const oldNotes = new Set(notes[row][col]);
     const oldVal = board[row][col];
 
     if (oldVal !== 0) {
-      // Clear number first, switch to notes
       moveHistory.push({ row, col, type: 'value', oldVal, newVal: 0, oldNotes: new Set(oldNotes), newNotes: new Set([num]) });
       board[row][col] = 0;
       notes[row][col] = new Set([num]);
@@ -839,29 +731,24 @@ function placeNumber(num) {
       notes[row][col] = newNotes;
     }
   } else {
-    // Place or erase number
     const oldVal = board[row][col];
     const oldNotes = new Set(notes[row][col]);
 
-    if (num === oldVal) return; // same number, no-op
+    if (num === oldVal) return;
 
     moveHistory.push({ row, col, type: 'value', oldVal, newVal: num, oldNotes, newNotes: new Set() });
     board[row][col] = num;
-    notes[row][col] = new Set(); // clear notes when placing number
+    notes[row][col] = new Set();
 
-    // Auto-remove this number from notes in same row/col/box
     if (num !== 0) {
       const { gridSize } = puzzleData;
       const { boxRows, boxCols } = getBoxDims(gridSize);
-      // Row
       for (let c = 0; c < gridSize; c++) {
         if (c !== col) notes[row][c].delete(num);
       }
-      // Col
       for (let r = 0; r < gridSize; r++) {
         if (r !== row) notes[r][col].delete(num);
       }
-      // Box
       const br = Math.floor(row / boxRows) * boxRows;
       const bc = Math.floor(col / boxCols) * boxCols;
       for (let r = br; r < br + boxRows; r++) {
@@ -874,7 +761,6 @@ function placeNumber(num) {
 
   updateVisuals();
 
-  // Check if board is full
   if (num !== 0) {
     const { gridSize } = puzzleData;
     let full = true;
@@ -898,21 +784,18 @@ function findConflicts() {
       const val = board[r][c];
       if (val === 0) continue;
 
-      // Check row
       for (let c2 = 0; c2 < gridSize; c2++) {
         if (c2 !== c && board[r][c2] === val) {
           conflicts.add(`${r},${c}`);
           conflicts.add(`${r},${c2}`);
         }
       }
-      // Check col
       for (let r2 = 0; r2 < gridSize; r2++) {
         if (r2 !== r && board[r2][c] === val) {
           conflicts.add(`${r},${c}`);
           conflicts.add(`${r2},${c}`);
         }
       }
-      // Check box
       const br = Math.floor(r / boxRows) * boxRows;
       const bc = Math.floor(c / boxCols) * boxCols;
       for (let r2 = br; r2 < br + boxRows; r2++) {
@@ -944,7 +827,6 @@ function updateVisuals() {
 
     cell.classList.remove('selected', 'given', 'conflict', 'same-number');
 
-    // Remove old content (but keep cell itself)
     while (cell.firstChild) cell.removeChild(cell.firstChild);
 
     if (givenSet.has(key)) cell.classList.add('given');
@@ -962,7 +844,6 @@ function updateVisuals() {
     if (val !== 0) {
       cell.textContent = val;
     } else if (notes[r][c].size > 0) {
-      // Render notes grid
       const ng = document.createElement('div');
       ng.className = 'notes-grid ' + (gridSize === 6 ? 'g6' : 'g9');
       for (let n = 1; n <= gridSize; n++) {
@@ -981,7 +862,6 @@ function checkWin() {
   const conflicts = findConflicts();
   if (conflicts.size > 0) return;
 
-  // Verify complete (all cells filled, no conflicts)
   const { gridSize, solution } = puzzleData;
   for (let r = 0; r < gridSize; r++) {
     for (let c = 0; c < gridSize; c++) {
@@ -992,19 +872,21 @@ function checkWin() {
   // WIN!
   solved = true;
   stopTimer();
-  completedLevels.add(currentLevel);
-  if (!bestTimes[currentLevel] || elapsed < bestTimes[currentLevel]) {
-    bestTimes[currentLevel] = elapsed;
+
+  stats.gamesWon[currentDiff] = (stats.gamesWon[currentDiff] || 0) + 1;
+  if (!stats.bestTimes[currentDiff] || elapsed < stats.bestTimes[currentDiff]) {
+    stats.bestTimes[currentDiff] = elapsed;
   }
-  saveProgress();
-  buildLevelSelector();
+  saveStats();
+  updateStatsDisplay();
 
   showMessage('Complimenti! Puzzle risolto!', 'success');
 
-  const isNewBest = elapsed === bestTimes[currentLevel];
+  const cfg = DIFF_CONFIGS[currentDiff];
+  const isNewBest = elapsed === stats.bestTimes[currentDiff];
   setTimeout(() => {
     document.getElementById('modalTime').textContent = formatTime(elapsed);
-    document.getElementById('modalMsg').textContent = `Livello ${currentLevel + 1} completato!` + (isNewBest ? ' Nuovo record!' : '');
+    document.getElementById('modalMsg').textContent = `${cfg.label} completato!` + (isNewBest ? ' Nuovo record!' : '');
     overlayEl.classList.add('visible');
   }, 600);
 }
@@ -1055,11 +937,8 @@ function hideMessage() {
 
 // ─── Button handlers ────────────────────────────────────────────
 document.getElementById('btnUndo').addEventListener('click', undo);
-document.getElementById('btnReset').addEventListener('click', () => loadLevel(currentLevel));
-document.getElementById('btnNext').addEventListener('click', () => {
-  const next = (currentLevel + 1) % LEVEL_CONFIGS.length;
-  loadLevel(next);
-});
+document.getElementById('btnReset').addEventListener('click', () => newGame());
+document.getElementById('btnNext').addEventListener('click', () => newGame());
 
 // Keyboard support
 document.addEventListener('keydown', (e) => {
@@ -1070,7 +949,6 @@ document.addEventListener('keydown', (e) => {
   }
   if (solved) return;
 
-  // Arrow keys to move selection
   if (selectedCell && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
     e.preventDefault();
     const { gridSize } = puzzleData;
@@ -1084,7 +962,6 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  // Number keys
   const num = parseInt(e.key);
   if (num >= 0 && num <= (puzzleData ? puzzleData.gridSize : 9)) {
     placeNumber(num === 0 ? 0 : num);
@@ -1100,8 +977,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ─── Init ───────────────────────────────────────────────────────
-const firstIncomplete = LEVEL_CONFIGS.findIndex((_, i) => !completedLevels.has(i));
-loadLevel(firstIncomplete >= 0 ? firstIncomplete : 0);
+newGame();
 </script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
 </body>
