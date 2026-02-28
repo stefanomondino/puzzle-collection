@@ -169,12 +169,8 @@
 
 <script>
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(regs => {
-    // Unregister any SW with old broken cache, then register fresh
-    Promise.all(regs.map(r => r.unregister())).then(() => {
-      navigator.serviceWorker.register('sw.js');
-    });
-  });
+  // Clean up any old broken service worker
+  navigator.serviceWorker.register('sw.js');
 }
 </script>
 </body>

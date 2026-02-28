@@ -23,8 +23,8 @@
     --text-muted: #777777;
     --success: #00b894;
     --error: #e74c3c;
-    --given: #f0edf9;
-    --active-row: #fffbe6;
+    --warning: #f39c12;
+    --locked: #e8e6e1;
   }
 
   body {
@@ -42,358 +42,178 @@
   header {
     width: 100%;
     max-width: 500px;
-    padding: 16px 20px 8px;
+    padding: 16px 20px 4px;
     text-align: center;
     position: relative;
   }
 
-  header h1 {
-    font-size: 28px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: var(--primary);
-    text-transform: uppercase;
-  }
-
+  header h1 { font-size: 28px; font-weight: 700; letter-spacing: 2px; color: var(--primary); text-transform: uppercase; }
   header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
 
-  .back-btn {
-    position: absolute;
-    left: 16px;
-    top: 18px;
-    text-decoration: none;
-    font-size: 22px;
-    color: var(--primary);
-    font-weight: 600;
-  }
-
-  .stats-btn {
-    position: absolute;
-    right: 16px;
-    top: 18px;
-    font-size: 20px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--primary);
-  }
+  .back-btn { position: absolute; left: 16px; top: 18px; text-decoration: none; font-size: 22px; color: var(--primary); font-weight: 600; }
+  .stats-btn { position: absolute; right: 16px; top: 18px; font-size: 20px; background: none; border: none; cursor: pointer; color: var(--primary); }
 
   .toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 8px 20px;
-    width: 100%;
-    max-width: 500px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; padding: 6px 20px; width: 100%; max-width: 500px;
   }
 
   .btn {
-    border: none;
-    border-radius: 20px;
-    padding: 8px 18px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-    background: var(--card);
-    color: var(--text);
+    border: none; border-radius: 20px; padding: 8px 16px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; background: var(--card); color: var(--text);
     box-shadow: 0 1px 4px rgba(0,0,0,0.1);
   }
-
   .btn:active { transform: scale(0.95); }
+  .btn.primary { background: var(--primary); color: #fff; }
 
-  .timer {
-    font-size: 22px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    color: var(--text);
-    min-width: 70px;
-    text-align: center;
+  .timer { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); min-width: 70px; text-align: center; }
+
+  /* --- Phase Banner --- */
+  .phase-banner {
+    font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase;
+    letter-spacing: 1px; padding: 4px 16px; margin: 4px 0;
   }
 
-  .diff-bar {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    padding: 4px 20px 8px;
-    width: 100%;
-    max-width: 500px;
-  }
-
-  .diff-btn {
-    border: 2px solid var(--primary);
-    border-radius: 20px;
-    padding: 6px 16px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    background: transparent;
-    color: var(--primary);
-    transition: all 0.15s;
-  }
-
-  .diff-btn.active {
-    background: var(--primary);
-    color: #fff;
-  }
-
-  /* --- Ladder Board --- */
+  /* --- Board --- */
   .board-container {
-    background: var(--card);
-    border-radius: 16px;
-    padding: 16px;
+    background: var(--card); border-radius: 16px; padding: 12px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-    width: 100%;
-    max-width: 380px;
-    margin: 8px auto;
+    width: 100%; max-width: 420px; margin: 4px auto;
   }
 
-  .ladder {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    align-items: center;
-  }
+  .ladder { display: flex; flex-direction: column; gap: 0; align-items: center; }
 
   .ladder-row {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    position: relative;
+    display: flex; gap: 3px; align-items: center; padding: 3px 0;
+    border-radius: 10px; transition: all 0.2s; position: relative;
+    width: 100%; justify-content: center;
   }
 
-  .ladder-row.given { opacity: 1; }
-  .ladder-row.active-row .cell:not(.given-cell) { background: var(--active-row); }
+  .ladder-row.locked { opacity: 0.5; }
+  .ladder-row.active { background: var(--primary-light); }
+  .ladder-row.swap-selected { background: #fff3cd; box-shadow: 0 0 0 2px var(--warning); }
+  .ladder-row.correct-order { background: #e6f9f3; }
+  .ladder-row.dragging { opacity: 0.4; }
 
-  .row-indicator {
-    width: 24px;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-align: center;
-    flex-shrink: 0;
+  .row-label {
+    width: 22px; font-size: 11px; font-weight: 700; color: var(--text-muted);
+    text-align: center; flex-shrink: 0;
   }
-
-  .row-indicator.done { color: var(--success); }
-  .row-indicator.current { color: var(--primary); }
+  .row-label.top { color: var(--success); }
+  .row-label.bottom { color: var(--success); }
 
   .connector {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 12px;
-    padding-left: 28px;
+    display: flex; justify-content: center; height: 10px; width: 100%;
   }
-
-  .connector-dot {
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: #ccc;
+  .connector-line {
+    width: 2px; height: 100%; background: #e0ddd8; transition: background 0.3s;
   }
-
-  .connector-dot.valid { background: var(--success); }
+  .connector-line.valid { background: var(--success); width: 3px; }
 
   .cell {
-    width: 48px;
-    height: 48px;
-    border: 2px solid #d0cdc8;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    font-weight: 700;
-    text-transform: uppercase;
-    transition: all 0.15s;
-    background: #fff;
+    width: 42px; height: 42px; border: 2px solid #d0cdc8; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 700; text-transform: uppercase;
+    transition: all 0.15s; background: #fff;
   }
 
-  .cell.given-cell {
-    background: var(--given);
-    border-color: #c5bfdb;
-    color: var(--primary);
-  }
-
-  .cell.changed-pos {
-    border-color: var(--primary);
-    background: var(--primary-light);
-  }
-
-  .cell.editable {
-    cursor: pointer;
-    border-color: #bbb;
-  }
-
-  .cell.editable.selected {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(108,92,231,0.25);
-  }
-
-  .cell.correct {
-    border-color: var(--success);
-    background: #e6f9f3;
-    color: var(--success);
-  }
-
-  .cell.error {
-    border-color: var(--error);
-    background: #fdeaea;
-    animation: shake 0.3s;
-  }
+  .cell.filled { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+  .cell.given { border-color: var(--success); color: var(--success); background: #e6f9f3; }
+  .cell.locked-cell { background: var(--locked); border-color: #ccc; color: #aaa; }
+  .cell.typing { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(108,92,231,0.3); }
+  .cell.error { border-color: var(--error); background: #fdeaea; animation: shake 0.3s; }
 
   @keyframes shake {
-    25% { transform: translateX(-4px); }
-    50% { transform: translateX(4px); }
-    75% { transform: translateX(-2px); }
+    25% { transform: translateX(-3px); } 50% { transform: translateX(3px); } 75% { transform: translateX(-2px); }
+  }
+
+  /* --- Clue Area --- */
+  .clue-area {
+    width: 100%; max-width: 420px; padding: 8px 16px;
+  }
+
+  .clue-card {
+    background: var(--card); border-radius: 12px; padding: 12px 16px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08); margin-bottom: 6px;
+    cursor: pointer; transition: all 0.15s; border: 2px solid transparent;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .clue-card.active { border-color: var(--primary); background: var(--primary-light); }
+  .clue-card.solved { border-color: var(--success); background: #e6f9f3; opacity: 0.7; }
+  .clue-card:active { transform: scale(0.98); }
+
+  .clue-num {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--primary);
+    color: #fff; font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .clue-card.solved .clue-num { background: var(--success); }
+
+  .clue-text { font-size: 14px; color: var(--text); flex: 1; }
+  .clue-answer { font-size: 14px; font-weight: 700; color: var(--success); text-transform: uppercase; }
+
+  /* --- Reorder instructions --- */
+  .reorder-hint {
+    text-align: center; font-size: 13px; color: var(--text-muted);
+    padding: 8px 16px; max-width: 420px;
   }
 
   /* --- Keyboard --- */
   .keyboard {
-    width: 100%;
-    max-width: 500px;
-    padding: 8px 4px;
-    margin-top: auto;
-    padding-bottom: env(safe-area-inset-bottom, 8px);
+    width: 100%; max-width: 500px; padding: 6px 4px;
+    margin-top: auto; padding-bottom: env(safe-area-inset-bottom, 6px);
   }
-
   .keyboard.hidden { display: none; }
 
-  .kb-row {
-    display: flex;
-    justify-content: center;
-    gap: 4px;
-    margin-bottom: 4px;
-  }
+  .kb-row { display: flex; justify-content: center; gap: 4px; margin-bottom: 4px; }
 
   .kb-key {
-    min-width: 32px;
-    height: 46px;
-    border: none;
-    border-radius: 8px;
-    background: var(--card);
-    color: var(--text);
-    font-size: 18px;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-transform: uppercase;
-    transition: background 0.1s;
-    flex: 1;
-    max-width: 42px;
+    min-width: 30px; height: 44px; border: none; border-radius: 8px;
+    background: var(--card); color: var(--text); font-size: 17px; font-weight: 600;
+    cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    display: flex; align-items: center; justify-content: center;
+    text-transform: uppercase; transition: background 0.1s; flex: 1; max-width: 40px;
   }
-
   .kb-key:active { background: var(--primary-light); }
-
-  .kb-key.wide {
-    min-width: 56px;
-    max-width: 72px;
-    font-size: 14px;
-    flex: 1.5;
-  }
-
-  .kb-key.action {
-    background: var(--primary);
-    color: #fff;
-  }
-
+  .kb-key.wide { min-width: 52px; max-width: 68px; font-size: 13px; flex: 1.5; }
+  .kb-key.action { background: var(--primary); color: #fff; }
   .kb-key.action:active { background: #5a4bd1; }
 
-  /* --- Stats Modal --- */
+  /* --- Modals --- */
   .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.4);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    z-index: 100; align-items: center; justify-content: center; padding: 20px;
   }
-
   .modal-overlay.show { display: flex; }
 
   .modal {
-    background: var(--card);
-    border-radius: 20px;
-    padding: 32px 24px;
-    max-width: 360px;
-    width: 100%;
-    text-align: center;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    animation: pop 0.3s ease;
+    background: var(--card); border-radius: 20px; padding: 28px 24px;
+    max-width: 360px; width: 100%; text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2); animation: pop 0.3s ease;
   }
+  @keyframes pop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-  @keyframes pop {
-    from { transform: scale(0.8); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-  }
+  .modal h2 { font-size: 22px; color: var(--primary); margin-bottom: 12px; }
+  .modal p { color: var(--text-muted); margin-bottom: 10px; font-size: 14px; }
 
-  .modal h2 {
-    font-size: 24px;
-    color: var(--primary);
-    margin-bottom: 16px;
-  }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+  .stat-item { background: var(--primary-light); border-radius: 12px; padding: 10px 8px; }
+  .stat-item .num { font-size: 26px; font-weight: 700; color: var(--primary); }
+  .stat-item .lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
-  .modal p { color: var(--text-muted); margin-bottom: 12px; font-size: 15px; }
+  .modal .btn { margin-top: 14px; background: var(--primary); color: #fff; padding: 12px 28px; font-size: 15px; border-radius: 24px; }
 
-  .stat-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin: 16px 0;
-  }
-
-  .stat-item {
-    background: var(--primary-light);
-    border-radius: 12px;
-    padding: 12px 8px;
-  }
-
-  .stat-item .num {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--primary);
-  }
-
-  .stat-item .lbl {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-
-  .modal .btn {
-    margin-top: 16px;
-    background: var(--primary);
-    color: #fff;
-    padding: 12px 32px;
-    font-size: 16px;
-    border-radius: 24px;
-  }
-
-  p.stats {
-    text-align: center;
-    font-size: 13px;
-    color: var(--text-muted);
-    padding: 4px;
-  }
+  p.stats { text-align: center; font-size: 12px; color: var(--text-muted); padding: 2px; }
 
   .instructions {
-    max-width: 460px;
-    padding: 16px 24px;
-    font-size: 13px;
-    color: var(--text-muted);
-    line-height: 1.5;
-    text-align: center;
+    max-width: 460px; padding: 12px 24px; font-size: 12px;
+    color: var(--text-muted); line-height: 1.5; text-align: center;
   }
 
   @media (max-width: 380px) {
-    .cell { width: 40px; height: 40px; font-size: 18px; }
-    .kb-key { height: 40px; font-size: 16px; }
+    .cell { width: 36px; height: 36px; font-size: 16px; }
+    .kb-key { height: 40px; font-size: 15px; }
+    .clue-card { padding: 10px 12px; }
   }
 </style>
 </head>
@@ -402,34 +222,33 @@
 <header>
   <a href="index.html" class="back-btn">&larr;</a>
   <h1>Scaletta</h1>
-  <p>Completa la scala di parole</p>
+  <p>Scala di parole con indizi</p>
   <button class="stats-btn" onclick="showStats()" title="Statistiche">&#x1F3C6;</button>
 </header>
 
-<div class="diff-bar">
-  <button class="diff-btn active" data-diff="4" onclick="setDiff(4)">4 lettere</button>
-  <button class="diff-btn" data-diff="5" onclick="setDiff(5)">5 lettere</button>
-</div>
-
 <div class="toolbar">
-  <button class="btn" onclick="hint()">&#128161; Aiuto</button>
+  <button class="btn" onclick="useHint()">&#128161; Aiuto</button>
   <div class="timer" id="timer">00:00</div>
   <button class="btn" onclick="newGame()">&#10227; Nuovo</button>
 </div>
 
+<div class="phase-banner" id="phaseBanner">Fase 1: Risolvi gli indizi</div>
+
 <div class="board-container">
   <div class="ladder" id="ladder"></div>
 </div>
+
+<div class="clue-area" id="clueArea"></div>
+<div class="reorder-hint" id="reorderHint"></div>
 
 <p class="stats" id="statsLine"></p>
 
 <div class="keyboard" id="keyboard"></div>
 
 <p class="instructions">
-  <strong>Scaletta</strong>: completa la scala di parole dal primo all'ultimo gradino.
-  Ogni parola differisce dalla precedente per <strong>una sola lettera</strong>.
-  Le parole evidenziate sono date; riempi le celle vuote.
-  Su mobile usa la tastiera in basso, su desktop quella fisica.
+  <strong>Fase 1</strong>: risolvi i 5 indizi e scopri le parole.
+  <strong>Fase 2</strong>: riordina le parole per formare una scala (ogni coppia differisce di 1 lettera).
+  <strong>Fase 3</strong>: indovina la prima e l'ultima parola con l'indizio tematico.
 </p>
 
 <!-- Stats Modal -->
@@ -437,16 +256,16 @@
   <div class="modal">
     <h2>Statistiche</h2>
     <div class="stat-grid" id="statsGrid"></div>
-    <button class="btn" onclick="closeStats()">Chiudi</button>
+    <button class="btn" onclick="closeModal('statsModal')">Chiudi</button>
   </div>
 </div>
 
 <!-- Win Modal -->
 <div class="modal-overlay" id="winModal">
   <div class="modal">
-    <h2 id="winTitle">Complimenti!</h2>
+    <h2>Complimenti!</h2>
     <p id="winMsg"></p>
-    <button class="btn" onclick="closeWin(); newGame();">Nuova Scaletta &rarr;</button>
+    <button class="btn" onclick="closeModal('winModal'); newGame();">Nuova Scaletta &rarr;</button>
   </div>
 </div>
 
@@ -461,82 +280,123 @@ function mulberry32(a) {
   };
 }
 
-// --- Italian Word Lists ---
-const WORDS_4 = [
-  'acre','alba','albo','alma','alto','amen','anca','anno','arco','area','arma','arpa','arte','asse',
-  'baco','bara','base','bile','biro','boia','bora','buca','buio',
-  'cade','cala','cane','capo','cara','caro','casa','caso','cave','cena','cera','cero','cima',
-  'coda','cola','come','cone','cono','cora','core','coro','cosa','cova','cuce','cura','cure',
-  'dado','dare','data','dato','diga','dire','diva','divo','doge','dolo','dona','dose','dote',
-  'duca','duna','dura','dure','duro',
-  'fama','fare','faro','fase','fata','fate','fato','fico','fila','file','filo','fine','fino',
-  'foca','foga','fola','fora','foro','fuga','fune',
-  'gala','gara','gelo','giga','gira','giro','gita','gola','gore','gota','gora',
-  'idea',
-  'lago','lama','lana','lare','lato','lava','lega','lena','leva','lido','lima','lino',
-  'lira','lode','logo','loro','loto','luce','luna','lupa',
-  'mago','mala','male','mano','mare','mela','mena','meno','meta','mica','mina','mine',
-  'mira','mire','mise','mite','moda','modo','mola','mole','molo','more','moro','mota',
-  'moto','mulo','mura','muro','musa','muta','mute','muto',
-  'nano','naso','nave','neve','nido','noce','node','nodo','nome','nona','none','nono',
-  'nota','note','nova','nove','nuca','nuda','nudo',
-  'orca','orlo','orso','oste',
-  'pace','paga','pale','palo','pane','para','pare','pari','pece','pena','pene','pere',
-  'peso','pile','pino','pira','polo','pone','pope','poro','pose','pura','pure','puro',
-  'rada','rana','rare','raro','rate','remo','rene','resa','rete','rima','rime','riva',
-  'rive','roba','roma','rosa','rose','rota','rude','ruga','rupe',
-  'sala','sale','sana','sane','sano','scia','seco','sede','sega','seme','seno','sera',
-  'seta','sete','soda','sola','sole','solo','soma','sono','sora','suda',
-  'tale','tana','tara','tela','tema','tesa','tese','tino','tira','tire','tiro','toga',
-  'tomo','tono','topo','tore','toro','tuba','tufo','tuta',
-  'unto','urna',
-  'vale','vana','vane','vano','varo','vaso','vena','vera','vere','vero','vice','vile',
-  'vino','vira','viso','vita','vite','viva','vive','vivo','voce','voga','vola','volo','vota','voto',
-  'zara','zero','zeta','zona'
-];
-
-const WORDS_5 = [
-  'abete','acido','acuto','adagio','agile','aiuto','albero','allegro','alone','amaro',
-  'ballo','banco','barba','barca','basso','bello','bocca','bordo','bosco','bravo','brina','brodo','bruno','buono',
-  'calce','caldo','calmo','campo','canto','carta','cerco','cielo','cobra','cocco','collo','colmo','colpa',
-  'colpo','coppa','cordo','corna','corpo','corsa','corte','costa','crema','croce','crude','cuneo','curva',
-  'dardo','dolce','donna','dorso','drago',
-  'falco','fango','farsa','fauna','ferro','festa','fiaba','fiato','fieno','fiero','fisso','flora','fogna',
-  'folla','fondo','forma','forza','fosso','freno','frumo','fuoco','furbo','fusto',
-  'gamba','gatto','gemma','gente','gesto','gonna','grado','grana','grido','grosso','gusto',
-  'lampo','lardo','largo','legge','lembo','lento','letto','lieve','lince','lista','litro','lonza','lusso',
-  'madre','magro','manco','manto','marca','marzo','massa','mento','merce','mezzo','mille','mirto',
-  'molto','mondo','monte','morbo','morso','mosca','motto','mucca','muffa','munto','messo',
-  'narco','nerbo','nervo','nesso','netto','nocca','notte','nullo','nuovo','nuova',
-  'opera','onore','ordine','osare','ossia',
-  'padre','palla','palmo','panca','panno','parco','parto','passo','pasta','paura','penna','perla',
-  'perno','pesce','pesta','piano','pigro','pista','piuma','pizza','plico','polso','ponce','ponte',
-  'porta','porto','posta','prato','prima','prova','punto','punta',
-  'rango','razza','reame','resta','rebus','renna','ressa','retto','ricco','righe','rotta','rosso','ruota',
-  'sacro','salsa','salto','santo','scala','scarpa','scena','segno','sella','senso','sfera',
-  'solco','sordo','sorte','spada','spago','spina','sposa','stelo','stile','stufa','succo',
-  'tacco','tango','tappo','tardo','tazza','tempo','terra','terso','testa','tetto','tigre',
-  'tonfo','tondo','torba','torre','tosco','treno','trota','turno','tutto',
-  'umore','unico','unire','usare','utile',
-  'vampa','vasto','vello','vento','verde','verme','verso','vetta','vigna','viola','virus','vista','vizzo','volle','volta','volto',
-  'zappa','zolla','zucca'
-];
-
-// --- Graph Building ---
-function buildGraph(words) {
-  const adj = new Map();
-  for (const w of words) adj.set(w, []);
-  for (let i = 0; i < words.length; i++) {
-    for (let j = i + 1; j < words.length; j++) {
-      if (diffCount(words[i], words[j]) === 1) {
-        adj.get(words[i]).push(words[j]);
-        adj.get(words[j]).push(words[i]);
-      }
-    }
+function shuffleArray(arr, rng) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  return adj;
+  return a;
 }
 
+// --- Puzzle Database ---
+// Each puzzle: words[0]=top, words[6]=bottom, words[1..5]=middle (in correct ladder order)
+// clues[0..4] = clues for words[1..5] respectively
+// tbClue = shared clue for top & bottom words
+const PUZZLES = [
+  {
+    words: ['monte','conte','conto','canto','tanto','tango','fango'],
+    clues: ['Titolo nobiliare','Si paga al ristorante','Melodia vocale','Una grande quantità','Ballo argentino'],
+    tbClue: 'Elementi del paesaggio'
+  },
+  {
+    words: ['mare','male','mole','sole','sale','sane','cane'],
+    clues: ['Contrario di bene','Massa, grande quantità','Stella del nostro sistema','Condimento bianco per i cibi','In buona salute (femminile plurale)'],
+    tbClue: 'Compagni d\'estate in spiaggia'
+  },
+  {
+    words: ['vino','vano','varo','faro','fare','dare','dire'],
+    clues: ['Inutile, senza risultato','Messa in acqua di una nave','Torre luminosa per le navi','Verbo di azione','Opposto di ricevere'],
+    tbClue: 'A tavola tra amici'
+  },
+  {
+    words: ['cura','dura','duna','luna','lana','lava','lama'],
+    clues: ['Resistente, non morbida','Collina di sabbia','Satellite della Terra','Fibra della pecora','Materiale fuso dal vulcano'],
+    tbClue: 'Dal dottore'
+  },
+  {
+    words: ['porta','posta','costa','cesta','testa','tenta','tenda'],
+    clues: ['Si ritira all\'ufficio postale','Litorale, riva del mare','Contenitore intrecciato di vimini','Parte del corpo con il cervello','Prova, fa un tentativo'],
+    tbClue: 'Si aprono e si chiudono'
+  },
+  {
+    words: ['nero','vero','vera','vena','cena','cera','sera'],
+    clues: ['Autentico, non falso','Anello nuziale','Vaso sanguigno','Pasto della sera','Materiale delle candele'],
+    tbClue: 'Calano insieme'
+  },
+  {
+    words: ['mano','meno','melo','mela','tela','tesa','resa'],
+    clues: ['Contrario di più','Albero che dà le mele','Frutto rosso o verde','Tessuto del pittore','Stirata, sotto tensione'],
+    tbClue: 'Fine della battaglia'
+  },
+  {
+    words: ['torre','corre','corte','conte','conto','canto','santo'],
+    clues: ['Si muove velocemente','Residenza del re','Titolo nobiliare','Calcolo da pagare','Melodia vocale'],
+    tbClue: 'Nel medioevo'
+  },
+  {
+    words: ['vita','vite','vile','bile','file','fila','filo'],
+    clues: ['Pianta dell\'uva o pezzo a spirale','Codardo, senza coraggio','Liquido prodotto dal fegato','Documenti digitali','Coda di persone in attesa'],
+    tbClue: 'Appeso a un...'
+  },
+  {
+    words: ['sole','sola','soda','coda','cola','cosa','casa'],
+    clues: ['Senza compagnia','Bevanda frizzante','Appendice degli animali','Scorre lentamente, gocciola','Oggetto, affare'],
+    tbClue: 'Dove stare d\'estate'
+  },
+  {
+    words: ['muro','mura','mira','mina','mena','mela','meta'],
+    clues: ['Pareti difensive della città','Punto d\'osservazione del tiratore','Esplosivo sotterraneo','Conduce, porta','Frutto rosso o verde'],
+    tbClue: 'Obiettivo da raggiungere'
+  },
+  {
+    words: ['toro','tono','topo','tipo','tiro','tira','mira'],
+    clues: ['Altezza di un suono','Piccolo roditore','Genere, categoria','Lancio verso un bersaglio','Trascina, esercita forza'],
+    tbClue: 'Nell\'arena'
+  },
+  {
+    words: ['palla','balla','bolla','molla','molle','molte','monte'],
+    clues: ['Danza o grossa bugia','Sfera d\'aria nell\'acqua','Meccanismo elastico a spirale','Non dure, cedevoli','Tante, in gran numero'],
+    tbClue: 'Giochi all\'aperto'
+  },
+  {
+    words: ['rosa','roba','roma','rima','rime','rive','vive'],
+    clues: ['Oggetti, cose in generale','Capitale d\'Italia','Suono uguale a fine verso','Poesie in versi','Sponde di un fiume'],
+    tbClue: 'Il fiore che sboccia'
+  },
+  {
+    words: ['lento','letto','lesto','resto','gesto','gusto','busto'],
+    clues: ['Mobile per dormire','Rapido, svelto','Ciò che rimane','Movimento espressivo del corpo','Uno dei cinque sensi'],
+    tbClue: 'Opposti nel ritmo'
+  },
+  {
+    words: ['peso','pesa','pena','cena','cera','cero','cera'],
+    clues: ['Misura con la bilancia','Sofferenza, punizione','Pasto della sera','Materiale delle candele','Candelabro liturgico'],
+    tbClue: 'Sul piatto della bilancia'
+  },
+  {
+    words: ['lago','lato','dato','dito','divo','dive','dire'],
+    clues: ['Fianco, parte laterale','Informazione, numero','Appendice della mano','Persona famosa dello spettacolo','Celebrità femminili'],
+    tbClue: 'Specchio naturale e parole'
+  },
+  {
+    words: ['nave','neve','nove','note','noia','nona','dona'],
+    clues: ['Precipitazione bianca invernale','Numero dopo l\'otto','Segni musicali sul pentagramma','Mancanza di interesse, tedio','Nonna, o la nona ora'],
+    tbClue: 'Attraversa l\'acqua e il cuore'
+  },
+  {
+    words: ['fuga','foga','foca','fora','foro','moro','muro'],
+    clues: ['Impeto, grande energia','Mammifero marino','Perfora, fa un buco','Apertura, buco','Di carnagione scura'],
+    tbClue: 'Scappare e costruire'
+  },
+  {
+    words: ['rete','rate','rane','rane','lane','lame','lume'],
+    clues: ['Quote di un pagamento','Anfibi che gracidano','Fibre tessili plurale','Lame di coltello','Piccola luce, candela'],
+    tbClue: 'Cattura e illumina'
+  }
+];
+
+// --- Helpers ---
 function diffCount(a, b) {
   if (a.length !== b.length) return Infinity;
   let d = 0;
@@ -544,78 +404,52 @@ function diffCount(a, b) {
   return d;
 }
 
-// --- Path Finding (DFS with random walk) ---
-function findLadder(adj, rng, targetLen) {
-  const words = Array.from(adj.keys());
-  // Shuffle starting points
-  const shuffled = words.slice().sort(() => rng() - 0.5);
-
-  for (const start of shuffled) {
-    const path = dfsPath(adj, start, targetLen, rng);
-    if (path) return path;
+function isValidLadder(words) {
+  for (let i = 1; i < words.length; i++) {
+    if (diffCount(words[i - 1], words[i]) !== 1) return false;
   }
-  return null;
-}
-
-function dfsPath(adj, start, targetLen, rng) {
-  const stack = [[start, [start], new Set([start])]];
-  let attempts = 0;
-  const maxAttempts = 5000;
-
-  while (stack.length > 0 && attempts < maxAttempts) {
-    attempts++;
-    const [node, path, visited] = stack.pop();
-
-    if (path.length === targetLen) return path;
-
-    const neighbors = adj.get(node) || [];
-    const shuffledN = neighbors.filter(n => !visited.has(n)).sort(() => rng() - 0.5);
-
-    for (const next of shuffledN.slice(0, 3)) {
-      const newVisited = new Set(visited);
-      newVisited.add(next);
-      stack.push([next, [...path, next], newVisited]);
-    }
-  }
-  return null;
+  return true;
 }
 
 // --- Persistence (localStorage) ---
 const STORAGE_KEY = 'scaletta_stats';
 
 function loadStats() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultStats();
-  } catch { return defaultStats(); }
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultStats(); }
+  catch { return defaultStats(); }
 }
-
 function defaultStats() {
   return { gamesPlayed: 0, gamesWon: 0, currentStreak: 0, maxStreak: 0, lastPlayed: '', bestTimes: {} };
 }
-
-function saveStats(s) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-}
+function saveStats(s) { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
 
 // --- Game State ---
-let wordLen = 4;
-let ladder = [];           // Array of 7 words (the solution)
-let playerGrid = [];       // Array of 7 arrays (letters), some editable
-let editableRows = [];     // Which rows are editable (indices 1-5)
-let changePositions = [];  // For each row i>0: which position changed from row i-1
-let selectedRow = -1;
-let selectedCol = -1;
+let puzzle = null;         // Current puzzle data
+let phase = 1;             // 1=clues, 2=reorder, 3=top/bottom
+let solvedClues = [];      // Array of {word, clueIdx} for solved clues
+let activeClueIdx = -1;    // Which clue is being answered
+let typingBuffer = '';      // Current typing input
+let middleOrder = [];      // Current order of middle words (phase 2)
+let swapSelected = -1;     // Index selected for swap (phase 2)
+let topWord = '';           // Player's top word (phase 3)
+let bottomWord = '';        // Player's bottom word (phase 3)
+let phase3Focus = 'top';   // Which word is being typed in phase 3
+let phase3Col = 0;         // Current column in phase 3
 let timerInterval = null;
 let startTime = 0;
 let elapsed = 0;
 let gameWon = false;
-let graphCache = {};
+let hintsUsed = 0;
 let isMobile = false;
+let usedPuzzles = [];
 
-// --- DOM Refs ---
+// --- DOM ---
 const ladderEl = document.getElementById('ladder');
 const timerEl = document.getElementById('timer');
 const keyboardEl = document.getElementById('keyboard');
+const clueAreaEl = document.getElementById('clueArea');
+const phaseBannerEl = document.getElementById('phaseBanner');
+const reorderHintEl = document.getElementById('reorderHint');
 const statsLineEl = document.getElementById('statsLine');
 
 // --- Init ---
@@ -624,171 +458,179 @@ function init() {
   buildKeyboard();
   if (!isMobile) keyboardEl.classList.add('hidden');
   document.addEventListener('keydown', onKeyDown);
-  updateDiffButtons();
   newGame();
   updateStatsLine();
-}
-
-// --- Difficulty ---
-function setDiff(len) {
-  wordLen = len;
-  updateDiffButtons();
-  newGame();
-}
-
-function updateDiffButtons() {
-  document.querySelectorAll('.diff-btn').forEach(b => {
-    b.classList.toggle('active', parseInt(b.dataset.diff) === wordLen);
-  });
 }
 
 // --- New Game ---
 function newGame() {
   gameWon = false;
+  hintsUsed = 0;
   stopTimer();
 
-  const wordList = wordLen === 4 ? WORDS_4 : WORDS_5;
-
-  // Build graph (cache per word length)
-  if (!graphCache[wordLen]) {
-    graphCache[wordLen] = buildGraph(wordList);
-  }
-  const adj = graphCache[wordLen];
-
-  // Generate seed from date + random
-  const seed = Date.now() ^ (Math.random() * 0xFFFFFF | 0);
+  // Pick a random puzzle
+  const seed = Date.now();
   const rng = mulberry32(seed);
+  let idx;
+  const validPuzzles = PUZZLES.filter((_, i) => !usedPuzzles.includes(i));
+  if (validPuzzles.length === 0) usedPuzzles = [];
+  const pool = usedPuzzles.length < PUZZLES.length
+    ? PUZZLES.map((p, i) => i).filter(i => !usedPuzzles.includes(i))
+    : PUZZLES.map((_, i) => i);
+  idx = pool[Math.floor(rng() * pool.length)];
+  usedPuzzles.push(idx);
 
-  ladder = findLadder(adj, rng, 7);
+  puzzle = JSON.parse(JSON.stringify(PUZZLES[idx]));
 
-  if (!ladder) {
-    // Fallback: try with shorter path
-    ladder = findLadder(adj, rng, 5);
-    if (!ladder) {
-      // Last resort: try many seeds
-      for (let i = 0; i < 20; i++) {
-        const rng2 = mulberry32(seed + i * 7919);
-        ladder = findLadder(adj, rng2, 7) || findLadder(adj, rng2, 5);
-        if (ladder) break;
-      }
-    }
+  // Validate puzzle integrity
+  if (!isValidLadder(puzzle.words)) {
+    console.warn('Invalid puzzle ladder at index', idx);
   }
 
-  if (!ladder) {
-    alert('Impossibile generare il puzzle. Riprova.');
-    return;
-  }
+  phase = 1;
+  solvedClues = [];
+  activeClueIdx = 0;
+  typingBuffer = '';
+  middleOrder = [];
+  swapSelected = -1;
+  topWord = '';
+  bottomWord = '';
+  phase3Focus = 'top';
+  phase3Col = 0;
 
-  // Compute change positions
-  changePositions = [null]; // row 0 has no change
-  for (let i = 1; i < ladder.length; i++) {
-    for (let c = 0; c < ladder[i].length; c++) {
-      if (ladder[i][c] !== ladder[i-1][c]) {
-        changePositions.push(c);
-        break;
-      }
-    }
-  }
-
-  // Setup player grid
-  playerGrid = [];
-  editableRows = [];
-  for (let r = 0; r < ladder.length; r++) {
-    const row = ladder[r].split('');
-    if (r === 0 || r === ladder.length - 1) {
-      // Given rows: fully visible
-      playerGrid.push(row);
-    } else {
-      // Editable rows: show all letters except the changed one
-      const pRow = row.slice();
-      pRow[changePositions[r]] = '';
-      playerGrid.push(pRow);
-      editableRows.push(r);
-    }
-  }
-
-  selectedRow = editableRows.length > 0 ? editableRows[0] : -1;
-  selectedCol = selectedRow >= 0 ? changePositions[selectedRow] : -1;
-
-  renderLadder();
+  render();
   startTimer();
 }
 
 // --- Rendering ---
+function render() {
+  renderPhaseBanner();
+  renderLadder();
+  renderClueArea();
+  renderReorderHint();
+}
+
+function renderPhaseBanner() {
+  if (phase === 1) phaseBannerEl.textContent = 'Fase 1: Risolvi gli indizi';
+  else if (phase === 2) phaseBannerEl.textContent = 'Fase 2: Riordina la scala';
+  else if (phase === 3) phaseBannerEl.textContent = 'Fase 3: Prima e ultima parola';
+  else phaseBannerEl.textContent = '';
+}
+
 function renderLadder() {
   ladderEl.innerHTML = '';
+  const wordLen = puzzle.words[0].length;
+  const totalRows = puzzle.words.length;
 
-  for (let r = 0; r < ladder.length; r++) {
-    // Connector between rows
+  for (let r = 0; r < totalRows; r++) {
+    // Connector
     if (r > 0) {
       const conn = document.createElement('div');
       conn.className = 'connector';
-      const dot = document.createElement('div');
-      dot.className = 'connector-dot';
-      // Check if connection is valid
-      if (isRowComplete(r-1) && isRowComplete(r)) {
-        const w1 = playerGrid[r-1].join('');
-        const w2 = playerGrid[r].join('');
-        if (diffCount(w1, w2) === 1) dot.classList.add('valid');
+      const line = document.createElement('div');
+      line.className = 'connector-line';
+
+      if (phase === 2 || phase === 3 || gameWon) {
+        const wAbove = getDisplayWord(r - 1);
+        const wBelow = getDisplayWord(r);
+        if (wAbove && wBelow && wAbove.length === wBelow.length && diffCount(wAbove, wBelow) === 1) {
+          line.classList.add('valid');
+        }
       }
-      conn.appendChild(dot);
+      conn.appendChild(line);
       ladderEl.appendChild(conn);
     }
 
     const rowDiv = document.createElement('div');
     rowDiv.className = 'ladder-row';
 
-    const isGiven = r === 0 || r === ladder.length - 1;
-    const isEditable = editableRows.includes(r);
-    const isActive = r === selectedRow;
+    const isTop = r === 0;
+    const isBottom = r === totalRows - 1;
+    const isMiddle = !isTop && !isBottom;
+    const middleIdx = isMiddle ? r - 1 : -1;
 
-    if (isGiven) rowDiv.classList.add('given');
-    if (isActive) rowDiv.classList.add('active-row');
+    // Row label
+    const label = document.createElement('div');
+    label.className = 'row-label';
+    if (isTop) { label.textContent = '▲'; label.classList.add('top'); }
+    else if (isBottom) { label.textContent = '▼'; label.classList.add('bottom'); }
+    else label.textContent = r;
+    rowDiv.appendChild(label);
 
-    // Row indicator
-    const indicator = document.createElement('div');
-    indicator.className = 'row-indicator';
-    if (isGiven) {
-      indicator.textContent = r === 0 ? '▲' : '▼';
-      indicator.classList.add('done');
-    } else if (isRowCorrect(r)) {
-      indicator.textContent = '✓';
-      indicator.classList.add('done');
-    } else if (isActive) {
-      indicator.textContent = '→';
-      indicator.classList.add('current');
-    } else {
-      indicator.textContent = (r) + '';
+    // Determine what to show in cells
+    let displayWord = '';
+    let cellState = 'empty'; // empty, locked, filled, given, typing
+
+    if (phase === 1) {
+      if (isTop || isBottom) {
+        cellState = 'locked';
+      } else {
+        const solved = solvedClues.find(s => s.clueIdx === middleIdx);
+        if (solved) {
+          displayWord = solved.word;
+          cellState = 'filled';
+        } else if (activeClueIdx === middleIdx) {
+          displayWord = typingBuffer;
+          cellState = 'typing';
+        }
+      }
+    } else if (phase === 2) {
+      if (isTop || isBottom) {
+        cellState = 'locked';
+      } else {
+        displayWord = middleOrder[middleIdx] || '';
+        cellState = 'filled';
+        // Make row tappable for swap
+        const mi = middleIdx;
+        rowDiv.style.cursor = 'pointer';
+        rowDiv.addEventListener('click', () => handleSwapTap(mi));
+        if (swapSelected === middleIdx) rowDiv.classList.add('swap-selected');
+      }
+    } else if (phase === 3 || gameWon) {
+      if (isTop) {
+        displayWord = topWord;
+        cellState = phase3Focus === 'top' && !gameWon ? 'typing' : (topWord.length === wordLen ? 'given' : 'empty');
+        if (!gameWon && isTop) {
+          rowDiv.style.cursor = 'pointer';
+          rowDiv.addEventListener('click', () => { phase3Focus = 'top'; phase3Col = topWord.length < wordLen ? topWord.length : wordLen - 1; render(); });
+        }
+      } else if (isBottom) {
+        displayWord = bottomWord;
+        cellState = phase3Focus === 'bottom' && !gameWon ? 'typing' : (bottomWord.length === wordLen ? 'given' : 'empty');
+        if (!gameWon && isBottom) {
+          rowDiv.style.cursor = 'pointer';
+          rowDiv.addEventListener('click', () => { phase3Focus = 'bottom'; phase3Col = bottomWord.length < wordLen ? bottomWord.length : wordLen - 1; render(); });
+        }
+      } else {
+        displayWord = middleOrder[middleIdx] || '';
+        cellState = 'given';
+      }
     }
-    rowDiv.appendChild(indicator);
 
-    // Cells
-    for (let c = 0; c < playerGrid[r].length; c++) {
+    if (gameWon) {
+      displayWord = puzzle.words[r];
+      cellState = 'given';
+      rowDiv.classList.add('correct-order');
+    }
+
+    if (phase === 3 && !gameWon) {
+      if (isTop && phase3Focus === 'top') rowDiv.classList.add('active');
+      if (isBottom && phase3Focus === 'bottom') rowDiv.classList.add('active');
+    }
+
+    // Render cells
+    for (let c = 0; c < wordLen; c++) {
       const cell = document.createElement('div');
       cell.className = 'cell';
+      const ch = displayWord[c] || '';
+      cell.textContent = ch;
 
-      const letter = playerGrid[r][c];
-      cell.textContent = letter;
-
-      if (isGiven) {
-        cell.classList.add('given-cell');
-      } else if (c === changePositions[r]) {
-        cell.classList.add('editable');
-        if (r === selectedRow && c === selectedCol) cell.classList.add('selected');
-        if (letter && isRowComplete(r)) {
-          const word = playerGrid[r].join('');
-          const wordList = wordLen === 4 ? WORDS_4 : WORDS_5;
-          if (word === ladder[r]) {
-            cell.classList.add('correct');
-          } else if (!wordList.includes(word)) {
-            cell.classList.add('error');
-          }
-        }
-        cell.addEventListener('click', () => selectCell(r, c));
-      } else {
-        // Non-changing letter in editable row
-        cell.classList.add('given-cell');
-        if (c === changePositions[r]) cell.classList.add('changed-pos');
+      if (cellState === 'locked') cell.classList.add('locked-cell');
+      else if (cellState === 'filled') cell.classList.add('filled');
+      else if (cellState === 'given') cell.classList.add('given');
+      else if (cellState === 'typing') {
+        if (c < displayWord.length) cell.classList.add('filled');
+        else if (c === displayWord.length) cell.classList.add('typing');
       }
 
       rowDiv.appendChild(cell);
@@ -798,82 +640,339 @@ function renderLadder() {
   }
 }
 
-function isRowComplete(r) {
-  return playerGrid[r].every(l => l !== '');
+function getDisplayWord(r) {
+  const totalRows = puzzle.words.length;
+  if (r === 0) return topWord || null;
+  if (r === totalRows - 1) return bottomWord || null;
+  const mi = r - 1;
+  if (phase === 1) {
+    const solved = solvedClues.find(s => s.clueIdx === mi);
+    return solved ? solved.word : null;
+  }
+  return middleOrder[mi] || null;
 }
 
-function isRowCorrect(r) {
-  return playerGrid[r].join('') === ladder[r];
+function renderClueArea() {
+  clueAreaEl.innerHTML = '';
+
+  if (phase === 1) {
+    // Shuffle clue display order (but keep track of which clue index each refers to)
+    const clueIndices = puzzle.clues.map((_, i) => i);
+
+    for (const ci of clueIndices) {
+      const card = document.createElement('div');
+      card.className = 'clue-card';
+
+      const solved = solvedClues.find(s => s.clueIdx === ci);
+      if (solved) {
+        card.classList.add('solved');
+      } else if (ci === activeClueIdx) {
+        card.classList.add('active');
+      }
+
+      const num = document.createElement('div');
+      num.className = 'clue-num';
+      num.textContent = ci + 1;
+      card.appendChild(num);
+
+      const text = document.createElement('div');
+      text.className = 'clue-text';
+      text.textContent = puzzle.clues[ci];
+      card.appendChild(text);
+
+      if (solved) {
+        const ans = document.createElement('div');
+        ans.className = 'clue-answer';
+        ans.textContent = solved.word;
+        card.appendChild(ans);
+      }
+
+      if (!solved) {
+        card.addEventListener('click', () => {
+          activeClueIdx = ci;
+          typingBuffer = '';
+          render();
+        });
+      }
+
+      clueAreaEl.appendChild(card);
+    }
+  } else if (phase === 3 && !gameWon) {
+    const card = document.createElement('div');
+    card.className = 'clue-card active';
+    const num = document.createElement('div');
+    num.className = 'clue-num';
+    num.textContent = '?';
+    card.appendChild(num);
+    const text = document.createElement('div');
+    text.className = 'clue-text';
+    text.innerHTML = '<strong>Indizio:</strong> ' + puzzle.tbClue;
+    card.appendChild(text);
+    clueAreaEl.appendChild(card);
+  }
 }
 
-function selectCell(r, c) {
-  selectedRow = r;
-  selectedCol = c;
-  renderLadder();
+function renderReorderHint() {
+  if (phase === 2) {
+    reorderHintEl.textContent = 'Tocca due righe per scambiarle. Ogni parola deve differire di 1 lettera dalla vicina.';
+  } else {
+    reorderHintEl.textContent = '';
+  }
+}
+
+// --- Phase 1: Solve Clues ---
+function submitClueAnswer() {
+  if (phase !== 1 || activeClueIdx < 0) return;
+
+  const answer = typingBuffer.toLowerCase().trim();
+  const expected = puzzle.words[activeClueIdx + 1]; // words[1..5] correspond to clues[0..4]
+
+  if (answer === expected) {
+    solvedClues.push({ word: expected, clueIdx: activeClueIdx });
+    typingBuffer = '';
+
+    if (solvedClues.length === puzzle.clues.length) {
+      // All clues solved -> Phase 2
+      startPhase2();
+    } else {
+      // Move to next unsolved clue
+      const unsolved = puzzle.clues.map((_, i) => i).filter(i => !solvedClues.find(s => s.clueIdx === i));
+      activeClueIdx = unsolved[0];
+    }
+  } else {
+    // Wrong answer - shake
+    typingBuffer = '';
+    render();
+    const rows = ladderEl.querySelectorAll('.ladder-row');
+    const targetRow = rows[activeClueIdx + 1];
+    if (targetRow) {
+      targetRow.querySelectorAll('.cell').forEach(c => {
+        c.classList.add('error');
+        setTimeout(() => c.classList.remove('error'), 400);
+      });
+    }
+    return;
+  }
+
+  render();
+}
+
+// --- Phase 2: Reorder ---
+function startPhase2() {
+  phase = 2;
+  swapSelected = -1;
+  // Place solved words in scrambled order
+  const seed2 = Date.now();
+  const rng2 = mulberry32(seed2);
+  const solvedWords = solvedClues
+    .sort((a, b) => a.clueIdx - b.clueIdx)
+    .map(s => s.word);
+  middleOrder = shuffleArray(solvedWords, rng2);
+
+  // Make sure it's not already in correct order
+  const correct = puzzle.words.slice(1, -1);
+  if (middleOrder.join(',') === correct.join(',')) {
+    // Swap first two
+    [middleOrder[0], middleOrder[1]] = [middleOrder[1], middleOrder[0]];
+  }
+
+  render();
+}
+
+function handleSwapTap(middleIdx) {
+  if (phase !== 2) return;
+
+  if (swapSelected < 0) {
+    swapSelected = middleIdx;
+  } else if (swapSelected === middleIdx) {
+    swapSelected = -1;
+  } else {
+    // Swap
+    [middleOrder[swapSelected], middleOrder[middleIdx]] = [middleOrder[middleIdx], middleOrder[swapSelected]];
+    swapSelected = -1;
+
+    // Check if order is correct
+    const fullLadder = [puzzle.words[0], ...middleOrder, puzzle.words[puzzle.words.length - 1]];
+    // We only check middle is valid internally
+    let middleValid = true;
+    for (let i = 1; i < middleOrder.length; i++) {
+      if (diffCount(middleOrder[i - 1], middleOrder[i]) !== 1) { middleValid = false; break; }
+    }
+    // Also check connection to top/bottom neighbors
+    if (middleValid) {
+      const topNeighborOk = diffCount(puzzle.words[0], middleOrder[0]) === 1;
+      const botNeighborOk = diffCount(middleOrder[middleOrder.length - 1], puzzle.words[puzzle.words.length - 1]) === 1;
+      if (topNeighborOk && botNeighborOk) {
+        startPhase3();
+        return;
+      }
+    }
+  }
+  render();
+}
+
+// --- Phase 3: Top & Bottom ---
+function startPhase3() {
+  phase = 3;
+  topWord = '';
+  bottomWord = '';
+  phase3Focus = 'top';
+  phase3Col = 0;
+  render();
+}
+
+function submitPhase3Word() {
+  if (phase !== 3) return;
+  const wordLen = puzzle.words[0].length;
+
+  if (phase3Focus === 'top') {
+    if (topWord.length === wordLen) {
+      if (topWord === puzzle.words[0]) {
+        // Correct top word
+        phase3Focus = 'bottom';
+        phase3Col = 0;
+        if (bottomWord === puzzle.words[puzzle.words.length - 1]) {
+          winGame();
+          return;
+        }
+      } else {
+        // Wrong
+        shakeRow(0);
+        topWord = '';
+      }
+    }
+  } else {
+    if (bottomWord.length === wordLen) {
+      if (bottomWord === puzzle.words[puzzle.words.length - 1]) {
+        // Correct bottom word
+        phase3Focus = 'top';
+        if (topWord === puzzle.words[0]) {
+          winGame();
+          return;
+        }
+      } else {
+        shakeRow(puzzle.words.length - 1);
+        bottomWord = '';
+      }
+    }
+  }
+  render();
+}
+
+function shakeRow(r) {
+  render();
+  const rows = ladderEl.querySelectorAll('.ladder-row');
+  if (rows[r]) {
+    rows[r].querySelectorAll('.cell').forEach(c => {
+      c.classList.add('error');
+      setTimeout(() => c.classList.remove('error'), 400);
+    });
+  }
+}
+
+// --- Win ---
+function winGame() {
+  gameWon = true;
+  stopTimer();
+
+  const stats = loadStats();
+  stats.gamesPlayed++;
+  stats.gamesWon++;
+  const today = new Date().toISOString().slice(0, 10);
+  const yday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (stats.lastPlayed === today || stats.lastPlayed === yday) {
+    stats.currentStreak++;
+  } else {
+    stats.currentStreak = 1;
+  }
+  stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
+  stats.lastPlayed = today;
+  const key = puzzle.words[0].length + 'L';
+  if (!stats.bestTimes[key] || elapsed < stats.bestTimes[key]) {
+    stats.bestTimes[key] = elapsed;
+  }
+  saveStats(stats);
+  updateStatsLine();
+
+  render();
+
+  setTimeout(() => {
+    const hint = hintsUsed > 0 ? ` (${hintsUsed} aiuti usati)` : '';
+    document.getElementById('winMsg').textContent =
+      `Hai completato la scaletta in ${formatTime(elapsed)}!${hint}`;
+    document.getElementById('winModal').classList.add('show');
+  }, 500);
 }
 
 // --- Input Handling ---
-function inputLetter(letter) {
-  if (gameWon || selectedRow < 0) return;
-
-  letter = letter.toLowerCase();
-  if (!/^[a-zàèéìòù]$/.test(letter)) return;
-
-  playerGrid[selectedRow][selectedCol] = letter;
-  renderLadder();
-  checkWin();
-
-  // Auto-advance to next empty editable row
-  if (!gameWon) {
-    const nextRow = editableRows.find(r => r > selectedRow && playerGrid[r][changePositions[r]] === '');
-    if (nextRow !== undefined) {
-      selectedRow = nextRow;
-      selectedCol = changePositions[nextRow];
-      renderLadder();
-    }
-  }
-}
-
-function deleteLetter() {
-  if (gameWon || selectedRow < 0) return;
-  playerGrid[selectedRow][selectedCol] = '';
-  renderLadder();
-}
-
 function onKeyDown(e) {
   if (gameWon) return;
 
-  if (e.key === 'Backspace' || e.key === 'Delete') {
+  if (e.key === 'Enter') {
     e.preventDefault();
-    deleteLetter();
+    if (phase === 1) submitClueAnswer();
+    else if (phase === 3) submitPhase3Word();
     return;
   }
 
-  if (e.key === 'ArrowUp') {
+  if (e.key === 'Backspace') {
     e.preventDefault();
-    const idx = editableRows.indexOf(selectedRow);
-    if (idx > 0) {
-      selectedRow = editableRows[idx - 1];
-      selectedCol = changePositions[selectedRow];
-      renderLadder();
-    }
-    return;
-  }
-
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    const idx = editableRows.indexOf(selectedRow);
-    if (idx < editableRows.length - 1) {
-      selectedRow = editableRows[idx + 1];
-      selectedCol = changePositions[selectedRow];
-      renderLadder();
-    }
+    handleBackspace();
     return;
   }
 
   if (e.key.length === 1 && /^[a-zA-ZàèéìòùÀÈÉÌÒÙ]$/.test(e.key)) {
     e.preventDefault();
-    inputLetter(e.key);
+    handleLetter(e.key.toLowerCase());
+  }
+}
+
+function handleLetter(ch) {
+  if (gameWon) return;
+  const wordLen = puzzle.words[0].length;
+
+  if (phase === 1) {
+    if (activeClueIdx < 0) return;
+    if (typingBuffer.length < wordLen) {
+      typingBuffer += ch;
+      render();
+      if (typingBuffer.length === wordLen) {
+        setTimeout(() => submitClueAnswer(), 150);
+      }
+    }
+  } else if (phase === 3) {
+    if (phase3Focus === 'top') {
+      if (topWord.length < wordLen) {
+        topWord += ch;
+        render();
+        if (topWord.length === wordLen) {
+          setTimeout(() => submitPhase3Word(), 150);
+        }
+      }
+    } else {
+      if (bottomWord.length < wordLen) {
+        bottomWord += ch;
+        render();
+        if (bottomWord.length === wordLen) {
+          setTimeout(() => submitPhase3Word(), 150);
+        }
+      }
+    }
+  }
+}
+
+function handleBackspace() {
+  if (phase === 1) {
+    if (typingBuffer.length > 0) {
+      typingBuffer = typingBuffer.slice(0, -1);
+      render();
+    }
+  } else if (phase === 3) {
+    if (phase3Focus === 'top') {
+      if (topWord.length > 0) { topWord = topWord.slice(0, -1); render(); }
+    } else {
+      if (bottomWord.length > 0) { bottomWord = bottomWord.slice(0, -1); render(); }
+    }
   }
 }
 
@@ -899,14 +998,11 @@ function buildKeyboard() {
       btn.textContent = key;
       btn.addEventListener('click', (e) => {
         e.preventDefault();
-        if (key === '⌫') {
-          deleteLetter();
-        } else if (key === 'INVIO') {
-          // Move to next row or check
-          checkWin();
-        } else {
-          inputLetter(key);
-        }
+        if (key === '⌫') handleBackspace();
+        else if (key === 'INVIO') {
+          if (phase === 1) submitClueAnswer();
+          else if (phase === 3) submitPhase3Word();
+        } else handleLetter(key.toLowerCase());
       });
       rowDiv.appendChild(btn);
     }
@@ -915,74 +1011,48 @@ function buildKeyboard() {
 }
 
 // --- Hint ---
-function hint() {
+function useHint() {
   if (gameWon) return;
+  hintsUsed++;
 
-  // Find first incomplete editable row
-  const targetRow = editableRows.find(r => playerGrid[r][changePositions[r]] === '' || playerGrid[r].join('') !== ladder[r]);
-  if (targetRow === undefined) return;
-
-  const cp = changePositions[targetRow];
-  playerGrid[targetRow][cp] = ladder[targetRow][cp];
-  selectedRow = targetRow;
-  selectedCol = cp;
-  renderLadder();
-  checkWin();
-
-  // Advance selection
-  if (!gameWon) {
-    const nextRow = editableRows.find(r => r > targetRow && playerGrid[r][changePositions[r]] === '');
-    if (nextRow !== undefined) {
-      selectedRow = nextRow;
-      selectedCol = changePositions[nextRow];
-      renderLadder();
+  if (phase === 1) {
+    // Reveal current clue's answer
+    if (activeClueIdx < 0) return;
+    const word = puzzle.words[activeClueIdx + 1];
+    typingBuffer = word;
+    render();
+    setTimeout(() => submitClueAnswer(), 300);
+  } else if (phase === 2) {
+    // Put one word in the correct position
+    const correct = puzzle.words.slice(1, -1);
+    for (let i = 0; i < middleOrder.length; i++) {
+      if (middleOrder[i] !== correct[i]) {
+        // Find correct word and swap
+        const correctWord = correct[i];
+        const j = middleOrder.indexOf(correctWord);
+        if (j >= 0) {
+          [middleOrder[i], middleOrder[j]] = [middleOrder[j], middleOrder[i]];
+          swapSelected = -1;
+          render();
+          // Check completion
+          if (middleOrder.join(',') === correct.join(',')) {
+            setTimeout(() => startPhase3(), 400);
+          }
+          return;
+        }
+      }
+    }
+  } else if (phase === 3) {
+    if (phase3Focus === 'top') {
+      topWord = puzzle.words[0];
+      render();
+      setTimeout(() => submitPhase3Word(), 300);
+    } else {
+      bottomWord = puzzle.words[puzzle.words.length - 1];
+      render();
+      setTimeout(() => submitPhase3Word(), 300);
     }
   }
-}
-
-// --- Win Check ---
-function checkWin() {
-  for (const r of editableRows) {
-    if (playerGrid[r].join('') !== ladder[r]) return;
-  }
-
-  // All correct!
-  gameWon = true;
-  stopTimer();
-  selectedRow = -1;
-  selectedCol = -1;
-  renderLadder();
-
-  // Update stats
-  const stats = loadStats();
-  stats.gamesPlayed++;
-  stats.gamesWon++;
-  const today = new Date().toISOString().slice(0, 10);
-  if (stats.lastPlayed === today || stats.lastPlayed === yesterday()) {
-    stats.currentStreak++;
-  } else {
-    stats.currentStreak = 1;
-  }
-  stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
-  stats.lastPlayed = today;
-  const key = wordLen + 'L';
-  if (!stats.bestTimes[key] || elapsed < stats.bestTimes[key]) {
-    stats.bestTimes[key] = elapsed;
-  }
-  saveStats(stats);
-  updateStatsLine();
-
-  setTimeout(() => {
-    document.getElementById('winMsg').textContent =
-      `Hai completato la scaletta in ${formatTime(elapsed)}!`;
-    document.getElementById('winModal').classList.add('show');
-  }, 400);
-}
-
-function yesterday() {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
 }
 
 // --- Timer ---
@@ -1007,30 +1077,20 @@ function formatTime(ms) {
   return String(m).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
 }
 
-// --- Stats UI ---
+// --- Stats ---
 function showStats() {
   const stats = loadStats();
   const grid = document.getElementById('statsGrid');
-  const bt4 = stats.bestTimes['4L'] ? formatTime(stats.bestTimes['4L']) : '-';
-  const bt5 = stats.bestTimes['5L'] ? formatTime(stats.bestTimes['5L']) : '-';
   grid.innerHTML = `
     <div class="stat-item"><div class="num">${stats.gamesPlayed}</div><div class="lbl">Partite</div></div>
     <div class="stat-item"><div class="num">${stats.gamesWon}</div><div class="lbl">Vittorie</div></div>
     <div class="stat-item"><div class="num">${stats.currentStreak}</div><div class="lbl">Serie attuale</div></div>
     <div class="stat-item"><div class="num">${stats.maxStreak}</div><div class="lbl">Serie max</div></div>
-    <div class="stat-item"><div class="num">${bt4}</div><div class="lbl">Record 4 lett.</div></div>
-    <div class="stat-item"><div class="num">${bt5}</div><div class="lbl">Record 5 lett.</div></div>
   `;
   document.getElementById('statsModal').classList.add('show');
 }
 
-function closeStats() {
-  document.getElementById('statsModal').classList.remove('show');
-}
-
-function closeWin() {
-  document.getElementById('winModal').classList.remove('show');
-}
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
 function updateStatsLine() {
   const s = loadStats();
