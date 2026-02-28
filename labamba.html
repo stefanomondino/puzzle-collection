@@ -786,6 +786,9 @@ function handleAnswer(selectedIdx, isCorrect, round) {
   roundTimesMs.push(elapsed);
   totalGameMs += elapsed;
 
+  // Stop music immediately on answer
+  stopAudio();
+
   const buttons = document.querySelectorAll('.option-btn');
   buttons.forEach((btn, i) => {
     btn.style.pointerEvents = 'none';
@@ -814,7 +817,7 @@ function handleAnswer(selectedIdx, isCorrect, round) {
     } else {
       endGame();
     }
-  }, 1800);
+  }, 1200);
 }
 
 // ─── End Game ───────────────────────────────────────────────────
