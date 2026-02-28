@@ -466,13 +466,34 @@ const GENRES = {
 const GENRE_KEYS = Object.keys(GENRES);
 let selectedGenre = 'Pop';
 
-// ─── iTunes Search API ──────────────────────────────────────────
-async function searchiTunes(term, limit = 10) {
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&limit=${limit}&country=it`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error('Errore nella ricerca');
-  const data = await resp.json();
-  return data.results.filter(r => r.previewUrl && r.trackName && r.artistName);
+// ─── iTunes Search API (JSONP – iTunes non supporta CORS) ──────
+let _jsonpId = 0;
+function searchiTunes(term, limit = 10) {
+  return new Promise((resolve, reject) => {
+    const cbName = '_itunesCb' + (++_jsonpId);
+    const timeout = setTimeout(() => {
+      delete window[cbName];
+      script.remove();
+      reject(new Error('Timeout'));
+    }, 8000);
+
+    window[cbName] = function(data) {
+      clearTimeout(timeout);
+      delete window[cbName];
+      script.remove();
+      resolve((data.results || []).filter(r => r.previewUrl && r.trackName && r.artistName));
+    };
+
+    const script = document.createElement('script');
+    script.src = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&limit=${limit}&country=it&callback=${cbName}`;
+    script.onerror = () => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      script.remove();
+      reject(new Error('Errore nella ricerca'));
+    };
+    document.head.appendChild(script);
+  });
 }
 
 // ─── Persistence (localStorage) ─────────────────────────────────
