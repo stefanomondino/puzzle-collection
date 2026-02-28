@@ -207,7 +207,9 @@
   }
 
   .option-btn:active { transform: scale(0.98); }
-  .option-btn:hover { border-color: var(--primary); background: var(--primary-light); }
+  @media (hover: hover) {
+    .option-btn:hover { border-color: var(--primary); background: var(--primary-light); }
+  }
 
   .option-btn.correct { border-color: var(--success); background: #e8f5e9; color: #2e7d32; }
   .option-btn.wrong { border-color: var(--error); background: #fdecea; color: #c62828; }
