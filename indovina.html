@@ -708,6 +708,14 @@ document.getElementById('btnNew').addEventListener('click', newGame);
 // ─── Init ───────────────────────────────────────────────────────
 newGame();
 </script>
-<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    Promise.all(regs.map(r => r.unregister())).then(() => {
+      navigator.serviceWorker.register('sw.js');
+    });
+  });
+}
+</script>
 </body>
 </html>

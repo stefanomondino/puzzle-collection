@@ -1,4 +1,4 @@
-const CACHE_NAME = 'puzzle-v3';
+const CACHE_NAME = 'puzzle-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -14,7 +14,12 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
+  // Cache assets individually so a single failure doesn't block install
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(c =>
+      Promise.allSettled(ASSETS.map(url => c.add(url)))
+    )
+  );
   self.skipWaiting();
 });
 
@@ -28,9 +33,12 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Let cross-origin requests (e.g. iTunes API, audio previews) pass through without SW interference
-  if (new URL(e.request.url).origin !== self.location.origin) return;
+  const url = new URL(e.request.url);
 
+  // Only handle same-origin navigation and asset requests
+  if (url.origin !== self.location.origin) return;
+
+  // Network first, cache fallback, then network error passthrough
   e.respondWith(
     fetch(e.request)
       .then(res => {
@@ -38,6 +46,12 @@ self.addEventListener('fetch', e => {
         caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
         return res;
       })
-      .catch(() => caches.match(e.request))
+      .catch(() =>
+        caches.match(e.request).then(cached => {
+          if (cached) return cached;
+          // No cache match: let the browser handle the error naturally
+          return fetch(e.request);
+        })
+      )
   );
 });
