@@ -469,8 +469,8 @@ let selectedGenre = 'Pop';
 // ─── iTunes Search API ──────────────────────────────────────────
 async function searchiTunes(term, limit = 10) {
   const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&limit=${limit}&country=it`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error('Errore nella ricerca');
+  const resp = await fetch(url, { mode: 'cors', credentials: 'omit' });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   const data = await resp.json();
   return data.results.filter(r => r.previewUrl && r.trackName && r.artistName);
 }
@@ -555,6 +555,7 @@ async function buildRounds() {
 
   // Fetch songs from multiple artists to get variety
   const allSongs = [];
+  const fetchErrors = [];
   const fetchPromises = terms.slice(0, 15).map(async (term) => {
     try {
       const results = await searchiTunes(term, 8);
@@ -563,13 +564,16 @@ async function buildRounds() {
           allSongs.push(r);
         }
       });
-    } catch(e) { /* skip failed searches */ }
+    } catch(e) { fetchErrors.push(term + ': ' + e.message); }
   });
 
   await Promise.all(fetchPromises);
 
   if (allSongs.length < ROUNDS_PER_GAME + 3) {
-    throw new Error('Non sono state trovate abbastanza canzoni. Riprova.');
+    const detail = fetchErrors.length > 0
+      ? '\n\nErrori: ' + fetchErrors.slice(0, 3).join(', ')
+      : '';
+    throw new Error('Non sono state trovate abbastanza canzoni.' + detail);
   }
 
   shuffleArray(allSongs);
