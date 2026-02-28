@@ -810,6 +810,13 @@ function handleAnswer(selectedIdx, isCorrect, round) {
 
   renderScoreDots();
 
+  // Brief feedback, then clear options before next round
+  setTimeout(() => {
+    // Hide options immediately to avoid distraction
+    const opts = document.getElementById('optionsContainer');
+    if (opts) opts.innerHTML = '';
+  }, 800);
+
   setTimeout(() => {
     currentRound++;
     if (currentRound < ROUNDS_PER_GAME) {
@@ -817,7 +824,7 @@ function handleAnswer(selectedIdx, isCorrect, round) {
     } else {
       endGame();
     }
-  }, 1200);
+  }, 1000);
 }
 
 // ─── End Game ───────────────────────────────────────────────────
