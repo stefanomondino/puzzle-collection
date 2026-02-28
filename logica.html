@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#6C5CE7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Puzzle">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Logica - Puzzle Game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #faf8f5;
+    --card: #ffffff;
+    --primary: #6C5CE7;
+    --primary-light: #e8e4fd;
+    --text: #2d2d2d;
+    --text-muted: #777777;
+    --success: #00b894;
+    --cell-size: 44px;
+    --border-thin: 1px solid #d0cdc8;
+    --border-thick: 2px solid #555;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  header {
+    width: 100%;
+    max-width: 500px;
+    padding: 16px 20px 8px;
+    text-align: center;
+    position: relative;
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--primary);
+    text-transform: uppercase;
+  }
+
+  header p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 20px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .timer {
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    min-width: 70px;
+    text-align: center;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn:active { transform: scale(0.95); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+  }
+
+  .btn-outline:hover { background: var(--primary-light); }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #5a4bd6; }
+
+  .level-selector {
+    display: flex;
+    gap: 6px;
+    padding: 4px 20px 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 500px;
+  }
+
+  .level-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #d9d9d9;
+    background: var(--card);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text);
+  }
+
+  .level-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+
+  .level-btn.completed {
+    border-color: var(--success);
+    color: var(--success);
+    position: relative;
+  }
+
+  .level-btn.completed::after {
+    content: '\2713';
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    font-size: 10px;
+    background: var(--success);
+    color: #fff;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .level-btn.completed.active {
+    background: var(--success);
+    color: #fff;
+  }
+
+  .board-container {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    position: relative;
+    touch-action: none;
+  }
+
+  .board {
+    display: grid;
+    gap: 0;
+    position: relative;
+  }
+
+  .cell {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    font-size: calc(var(--cell-size) * 0.5);
+    font-weight: 600;
+    color: var(--primary);
+    background: #fdfcfa;
+  }
+
+  .cell.given {
+    color: var(--text);
+    background: #f4f2ee;
+    font-weight: 700;
+  }
+
+  .cell.selected {
+    background: var(--primary-light) !important;
+  }
+
+  .cell.same-number {
+    background: #f0edfa;
+  }
+
+  .cell.conflict {
+    color: #c62828;
+  }
+
+  .cell.conflict.selected {
+    background: #fde8e8 !important;
+  }
+
+  .cell:active { filter: brightness(0.95); }
+
+  /* Notes (pencil marks) */
+  .notes-grid {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0; left: 0;
+    pointer-events: none;
+  }
+
+  .notes-grid.g9 { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); }
+  .notes-grid.g6 { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); }
+
+  .note-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(var(--cell-size) * 0.22);
+    font-weight: 500;
+    color: var(--text-muted);
+    line-height: 1;
+  }
+
+  /* Sudoku grid borders */
+  .cell {
+    border-right: 1px solid #d0cdc8;
+    border-bottom: 1px solid #d0cdc8;
+  }
+
+  /* Thick borders for box boundaries - applied via JS classes */
+  .cell.box-right { border-right: 2px solid #555; }
+  .cell.box-bottom { border-bottom: 2px solid #555; }
+  .cell.box-left { border-left: 2px solid #555; }
+  .cell.box-top { border-top: 2px solid #555; }
+
+  /* Number pad */
+  .numpad {
+    display: flex;
+    gap: 6px;
+    padding: 16px 8px 4px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 500px;
+  }
+
+  .numpad-btn {
+    width: 40px;
+    height: 44px;
+    border-radius: 10px;
+    border: 2px solid #d9d9d9;
+    background: var(--card);
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .numpad-btn:active { transform: scale(0.92); }
+  .numpad-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .numpad-btn.erase { font-size: 16px; color: var(--text-muted); }
+  .numpad-btn.notes-toggle { font-size: 13px; color: var(--text-muted); padding: 0 4px; width: auto; min-width: 40px; }
+  .numpad-btn.notes-toggle.active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+
+  .message {
+    margin-top: 12px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .message.visible { opacity: 1; }
+  .message.success { background: #e8f5e9; color: var(--success); }
+
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .overlay.visible { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px;
+    max-width: 340px;
+    width: 90%;
+    text-align: center;
+    animation: pop 0.3s ease;
+  }
+
+  @keyframes pop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .modal h2 { font-size: 24px; margin-bottom: 8px; color: var(--success); }
+  .modal p { color: var(--text-muted); margin-bottom: 20px; }
+  .modal .time { font-size: 36px; font-weight: 700; color: var(--text); margin: 8px 0; }
+
+  .instructions {
+    max-width: 500px;
+    padding: 12px 20px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 420px) {
+    :root { --cell-size: 38px; }
+    .numpad-btn { width: 36px; height: 40px; font-size: 18px; }
+  }
+
+  @media (max-width: 350px) {
+    :root { --cell-size: 34px; }
+    .numpad-btn { width: 32px; height: 36px; font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" style="position:absolute;left:16px;top:16px;color:var(--primary);text-decoration:none;font-size:18px;font-weight:600;">&larr; Menu</a>
+  <h1>Logica</h1>
+  <p>Riempi la griglia con i numeri</p>
+  <p id="stats" style="font-size:12px;color:var(--text-muted);margin-top:4px;"></p>
+</header>
+
+<div class="toolbar">
+  <button class="btn btn-outline" id="btnUndo">&hookleftarrow; Annulla</button>
+  <div class="timer" id="timer">0:00</div>
+  <button class="btn btn-outline" id="btnReset">&#10227; Reset</button>
+</div>
+
+<div class="level-selector" id="levelSelector"></div>
+
+<div class="board-container" id="boardContainer">
+  <div class="board" id="board"></div>
+</div>
+
+<div class="numpad" id="numpad"></div>
+
+<div class="message" id="message"></div>
+
+<p class="instructions">
+  Ogni riga, colonna e riquadro deve contenere tutti i numeri senza ripetizioni.<br>
+  <strong>Tap</strong> su una cella, poi scegli il numero. Usa il pulsante <strong>note</strong> per gli appunti.
+</p>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">Completato!</h2>
+    <div class="time" id="modalTime">0:00</div>
+    <p id="modalMsg">Hai risolto il puzzle!</p>
+    <button class="btn btn-primary" id="btnNext" style="margin-top:8px;">Livello successivo &rarr;</button>
+  </div>
+</div>
+
+<script>
+// ─── Seeded PRNG (Mulberry32) ───────────────────────────────────
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function shuffleArray(arr, rng) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ─── Sudoku Logic ──────────────────────────────────────────────
+// Box dimensions: for 9x9 → 3x3 boxes; for 6x6 → 3x2 boxes
+function getBoxDims(gridSize) {
+  if (gridSize === 9) return { boxRows: 3, boxCols: 3 };
+  if (gridSize === 6) return { boxRows: 2, boxCols: 3 };
+  return { boxRows: 1, boxCols: gridSize };
+}
+
+function getBoxIndex(r, c, boxRows, boxCols) {
+  return Math.floor(r / boxRows) * (boxCols === 3 && boxRows === 3 ? 3 : boxRows === 2 ? 3 : 1) + Math.floor(c / boxCols);
+}
+
+// Check if placing val at (row, col) is valid
+function isValid(grid, gridSize, row, col, val, boxRows, boxCols) {
+  // Row check
+  for (let c = 0; c < gridSize; c++) {
+    if (c !== col && grid[row][c] === val) return false;
+  }
+  // Column check
+  for (let r = 0; r < gridSize; r++) {
+    if (r !== row && grid[r][col] === val) return false;
+  }
+  // Box check
+  const br = Math.floor(row / boxRows) * boxRows;
+  const bc = Math.floor(col / boxCols) * boxCols;
+  for (let r = br; r < br + boxRows; r++) {
+    for (let c = bc; c < bc + boxCols; c++) {
+      if (r !== row || c !== col) {
+        if (grid[r][c] === val) return false;
+      }
+    }
+  }
+  return true;
+}
+
+// ─── Generate a complete valid Sudoku grid ──────────────────────
+function generateSolution(gridSize, rng) {
+  const { boxRows, boxCols } = getBoxDims(gridSize);
+  const grid = Array.from({length: gridSize}, () => new Array(gridSize).fill(0));
+
+  function solve(pos) {
+    if (pos === gridSize * gridSize) return true;
+    const r = Math.floor(pos / gridSize);
+    const c = pos % gridSize;
+
+    const nums = [];
+    for (let n = 1; n <= gridSize; n++) nums.push(n);
+    shuffleArray(nums, rng);
+
+    for (const n of nums) {
+      if (isValid(grid, gridSize, r, c, n, boxRows, boxCols)) {
+        grid[r][c] = n;
+        if (solve(pos + 1)) return true;
+        grid[r][c] = 0;
+      }
+    }
+    return false;
+  }
+
+  if (!solve(0)) return null;
+  return grid;
+}
+
+// ─── Solver (for uniqueness check) ──────────────────────────────
+function countSolutions(grid, gridSize, maxCount) {
+  const { boxRows, boxCols } = getBoxDims(gridSize);
+  const board = grid.map(row => [...row]);
+  let count = 0;
+
+  // Find empty cells
+  const empties = [];
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      if (board[r][c] === 0) empties.push([r, c]);
+    }
+  }
+
+  function solve(idx) {
+    if (idx === empties.length) { count++; return count >= maxCount; }
+    const [r, c] = empties[idx];
+    for (let n = 1; n <= gridSize; n++) {
+      if (isValid(board, gridSize, r, c, n, boxRows, boxCols)) {
+        board[r][c] = n;
+        if (solve(idx + 1)) return true;
+        board[r][c] = 0;
+      }
+    }
+    return false;
+  }
+
+  solve(0);
+  return count;
+}
+
+// ─── Generate Puzzle (remove cells from solution) ───────────────
+function generatePuzzle(gridSize, numClues, seed) {
+  const rng = mulberry32(seed);
+  const solution = generateSolution(gridSize, rng);
+  if (!solution) return null;
+
+  const puzzle = solution.map(row => [...row]);
+  const totalCells = gridSize * gridSize;
+  const toRemove = totalCells - numClues;
+
+  // Create shuffled list of cell positions
+  const positions = [];
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      positions.push([r, c]);
+    }
+  }
+  shuffleArray(positions, rng);
+
+  let removed = 0;
+  for (const [r, c] of positions) {
+    if (removed >= toRemove) break;
+    const backup = puzzle[r][c];
+    puzzle[r][c] = 0;
+
+    if (countSolutions(puzzle, gridSize, 2) === 1) {
+      removed++;
+    } else {
+      puzzle[r][c] = backup; // restore - removal breaks uniqueness
+    }
+  }
+
+  // If we couldn't remove enough, still return what we have
+  return { gridSize, solution, puzzle };
+}
+
+// ─── Level Configs (50 levels) ──────────────────────────────────
+const LEVEL_CONFIGS = [];
+(function buildConfigs() {
+  // Levels 1-15: 6x6, easy to medium
+  for (let i = 0; i < 5; i++)  LEVEL_CONFIGS.push({ gridSize: 6, clues: 20 });
+  for (let i = 0; i < 5; i++)  LEVEL_CONFIGS.push({ gridSize: 6, clues: 16 });
+  for (let i = 0; i < 5; i++)  LEVEL_CONFIGS.push({ gridSize: 6, clues: 13 });
+  // Levels 16-30: 9x9, easy
+  for (let i = 0; i < 8; i++)  LEVEL_CONFIGS.push({ gridSize: 9, clues: 40 });
+  for (let i = 0; i < 7; i++)  LEVEL_CONFIGS.push({ gridSize: 9, clues: 35 });
+  // Levels 31-42: 9x9, medium
+  for (let i = 0; i < 12; i++) LEVEL_CONFIGS.push({ gridSize: 9, clues: 30 });
+  // Levels 43-50: 9x9, hard
+  for (let i = 0; i < 8; i++)  LEVEL_CONFIGS.push({ gridSize: 9, clues: 26 });
+})();
+
+// Pre-computed seeds
+const PUZZLE_SEEDS = [];
+(function findSeeds() {
+  for (let i = 0; i < 50; i++) {
+    PUZZLE_SEEDS.push(3000 + i * 211);
+  }
+})();
+
+const puzzleCache = {};
+function getPuzzle(index) {
+  if (puzzleCache[index]) return puzzleCache[index];
+  const cfg = LEVEL_CONFIGS[index];
+  let seed = PUZZLE_SEEDS[index];
+  let p = null;
+  let attempts = 0;
+  while (!p && attempts < 200) {
+    p = generatePuzzle(cfg.gridSize, cfg.clues, seed);
+    if (!p) seed += 7;
+    attempts++;
+  }
+  if (p) {
+    PUZZLE_SEEDS[index] = seed;
+    puzzleCache[index] = p;
+  }
+  return p;
+}
+
+// ─── Persistence ────────────────────────────────────────────────
+const STORAGE_KEY = 'logica_progress';
+function loadProgress() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (data && data.completed) return { completed: new Set(data.completed), bestTimes: data.bestTimes || {} };
+  } catch(e) {}
+  return { completed: new Set(), bestTimes: {} };
+}
+function saveProgress() {
+  const data = { completed: [...completedLevels], bestTimes };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+const progress = loadProgress();
+
+// ─── Game State ─────────────────────────────────────────────────
+let currentLevel = 0;
+let puzzleData = null;
+let board = [];        // player's current board (0 = empty)
+let notes = [];        // 2D array of Sets (pencil marks)
+let givenSet = null;   // set of "r,c" for given cells
+let selectedCell = null; // {row, col} or null
+let notesMode = false;
+let moveHistory = [];
+let timerInterval = null;
+let startTime = 0;
+let elapsed = 0;
+let timerRunning = false;
+let solved = false;
+let completedLevels = progress.completed;
+let bestTimes = progress.bestTimes;
+
+// ─── DOM refs ───────────────────────────────────────────────────
+const boardEl = document.getElementById('board');
+const boardContainer = document.getElementById('boardContainer');
+const timerEl = document.getElementById('timer');
+const messageEl = document.getElementById('message');
+const overlayEl = document.getElementById('overlay');
+const levelSelectorEl = document.getElementById('levelSelector');
+const numpadEl = document.getElementById('numpad');
+
+// ─── Level selector (paginated, 10 per page) ───────────────────
+const LEVELS_PER_PAGE = 10;
+let currentPage = 0;
+
+function buildLevelSelector() {
+  levelSelectorEl.innerHTML = '';
+  const totalPages = Math.ceil(LEVEL_CONFIGS.length / LEVELS_PER_PAGE);
+  currentPage = Math.floor(currentLevel / LEVELS_PER_PAGE);
+
+  if (totalPages > 1) {
+    const nav = document.createElement('div');
+    nav.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;justify-content:center;margin-bottom:6px;';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'btn btn-outline';
+    prevBtn.style.cssText = 'padding:4px 10px;font-size:12px;min-width:auto;';
+    prevBtn.textContent = '\u25C0';
+    prevBtn.disabled = currentPage === 0;
+    prevBtn.addEventListener('click', () => { currentPage = Math.max(0, currentPage - 1); buildLevelButtons(); });
+
+    const label = document.createElement('span');
+    label.style.cssText = 'font-size:12px;color:var(--text-muted);min-width:60px;text-align:center;';
+    label.textContent = `${currentPage * LEVELS_PER_PAGE + 1}\u2013${Math.min((currentPage + 1) * LEVELS_PER_PAGE, LEVEL_CONFIGS.length)}`;
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn btn-outline';
+    nextBtn.style.cssText = 'padding:4px 10px;font-size:12px;min-width:auto;';
+    nextBtn.textContent = '\u25B6';
+    nextBtn.disabled = currentPage >= totalPages - 1;
+    nextBtn.addEventListener('click', () => { currentPage = Math.min(totalPages - 1, currentPage + 1); buildLevelButtons(); });
+
+    nav.appendChild(prevBtn);
+    nav.appendChild(label);
+    nav.appendChild(nextBtn);
+    levelSelectorEl.appendChild(nav);
+  }
+
+  buildLevelButtons();
+  document.getElementById('stats').textContent = `Completati: ${completedLevels.size}/${LEVEL_CONFIGS.length}`;
+}
+
+function buildLevelButtons() {
+  const nav = levelSelectorEl.querySelector('div');
+  const existingBtns = levelSelectorEl.querySelectorAll('.level-btn');
+  existingBtns.forEach(b => b.remove());
+
+  if (nav) {
+    const label = nav.querySelector('span');
+    if (label) label.textContent = `${currentPage * LEVELS_PER_PAGE + 1}\u2013${Math.min((currentPage + 1) * LEVELS_PER_PAGE, LEVEL_CONFIGS.length)}`;
+    const btns = nav.querySelectorAll('button');
+    if (btns[0]) btns[0].disabled = currentPage === 0;
+    if (btns[1]) btns[1].disabled = currentPage >= Math.ceil(LEVEL_CONFIGS.length / LEVELS_PER_PAGE) - 1;
+  }
+
+  const start = currentPage * LEVELS_PER_PAGE;
+  const end = Math.min(start + LEVELS_PER_PAGE, LEVEL_CONFIGS.length);
+
+  for (let i = start; i < end; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'level-btn' + (i === currentLevel ? ' active' : '') + (completedLevels.has(i) ? ' completed' : '');
+    btn.textContent = i + 1;
+    if (completedLevels.has(i) && bestTimes[i]) {
+      btn.title = `Tempo: ${formatTime(bestTimes[i])}`;
+    }
+    btn.addEventListener('click', () => loadLevel(i));
+    levelSelectorEl.appendChild(btn);
+  }
+}
+
+// ─── Load Level ─────────────────────────────────────────────────
+function loadLevel(index) {
+  currentLevel = index;
+  puzzleData = getPuzzle(index);
+
+  if (!puzzleData) {
+    showMessage('Errore nel generare il puzzle', 'error');
+    return;
+  }
+
+  const { gridSize, puzzle } = puzzleData;
+
+  // Compute cell size
+  const maxGridPx = Math.min(window.innerWidth - 64, 420);
+  const idealSize = Math.floor(maxGridPx / gridSize);
+  const cellSize = Math.min(gridSize === 6 ? 60 : 44, Math.max(30, idealSize));
+  document.documentElement.style.setProperty('--cell-size', cellSize + 'px');
+
+  board = puzzle.map(row => [...row]);
+  notes = Array.from({length: gridSize}, () => Array.from({length: gridSize}, () => new Set()));
+  givenSet = new Set();
+
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      if (puzzle[r][c] !== 0) givenSet.add(`${r},${c}`);
+    }
+  }
+
+  selectedCell = null;
+  notesMode = false;
+  moveHistory = [];
+  solved = false;
+  elapsed = 0;
+  stopTimer();
+  timerEl.textContent = '0:00';
+  hideMessage();
+  overlayEl.classList.remove('visible');
+  buildLevelSelector();
+  buildNumpad();
+  renderBoard();
+}
+
+// ─── Render Board ───────────────────────────────────────────────
+function renderBoard() {
+  const { gridSize } = puzzleData;
+  const { boxRows, boxCols } = getBoxDims(gridSize);
+
+  boardEl.style.gridTemplateColumns = `repeat(${gridSize}, var(--cell-size))`;
+  boardEl.style.gridTemplateRows = `repeat(${gridSize}, var(--cell-size))`;
+  boardEl.innerHTML = '';
+
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+
+      // Box borders
+      if ((c + 1) % boxCols === 0 && c < gridSize - 1) cell.classList.add('box-right');
+      if ((r + 1) % boxRows === 0 && r < gridSize - 1) cell.classList.add('box-bottom');
+      if (c % boxCols === 0) cell.classList.add('box-left');
+      if (r % boxRows === 0) cell.classList.add('box-top');
+
+      boardEl.appendChild(cell);
+    }
+  }
+
+  updateVisuals();
+}
+
+// ─── Build Number Pad ───────────────────────────────────────────
+function buildNumpad() {
+  const { gridSize } = puzzleData;
+  numpadEl.innerHTML = '';
+
+  for (let n = 1; n <= gridSize; n++) {
+    const btn = document.createElement('button');
+    btn.className = 'numpad-btn';
+    btn.textContent = n;
+    btn.dataset.num = n;
+    btn.addEventListener('click', () => placeNumber(n));
+    numpadEl.appendChild(btn);
+  }
+
+  // Erase button
+  const eraseBtn = document.createElement('button');
+  eraseBtn.className = 'numpad-btn erase';
+  eraseBtn.innerHTML = '&#10005;';
+  eraseBtn.title = 'Cancella';
+  eraseBtn.addEventListener('click', () => placeNumber(0));
+  numpadEl.appendChild(eraseBtn);
+
+  // Notes toggle
+  const notesBtn = document.createElement('button');
+  notesBtn.className = 'numpad-btn notes-toggle';
+  notesBtn.id = 'notesToggle';
+  notesBtn.textContent = 'Note';
+  notesBtn.addEventListener('click', () => {
+    notesMode = !notesMode;
+    notesBtn.classList.toggle('active', notesMode);
+  });
+  numpadEl.appendChild(notesBtn);
+}
+
+// ─── Cell Interaction ───────────────────────────────────────────
+boardContainer.addEventListener('pointerdown', onCellClick);
+
+function onCellClick(e) {
+  if (solved) return;
+  const el = e.target.closest('.cell');
+  if (!el) return;
+  e.preventDefault();
+
+  const row = parseInt(el.dataset.row);
+  const col = parseInt(el.dataset.col);
+
+  selectedCell = { row, col };
+  updateVisuals();
+}
+
+// ─── Place Number ───────────────────────────────────────────────
+function placeNumber(num) {
+  if (!selectedCell || solved) return;
+  const { row, col } = selectedCell;
+  const key = `${row},${col}`;
+
+  if (givenSet.has(key)) return;
+
+  if (!timerRunning) startTimer();
+
+  if (notesMode && num !== 0) {
+    // Toggle note
+    const oldNotes = new Set(notes[row][col]);
+    const oldVal = board[row][col];
+
+    if (oldVal !== 0) {
+      // Clear number first, switch to notes
+      moveHistory.push({ row, col, type: 'value', oldVal, newVal: 0, oldNotes: new Set(oldNotes), newNotes: new Set([num]) });
+      board[row][col] = 0;
+      notes[row][col] = new Set([num]);
+    } else {
+      const newNotes = new Set(notes[row][col]);
+      if (newNotes.has(num)) newNotes.delete(num);
+      else newNotes.add(num);
+      moveHistory.push({ row, col, type: 'notes', oldVal: 0, newVal: 0, oldNotes, newNotes: new Set(newNotes) });
+      notes[row][col] = newNotes;
+    }
+  } else {
+    // Place or erase number
+    const oldVal = board[row][col];
+    const oldNotes = new Set(notes[row][col]);
+
+    if (num === oldVal) return; // same number, no-op
+
+    moveHistory.push({ row, col, type: 'value', oldVal, newVal: num, oldNotes, newNotes: new Set() });
+    board[row][col] = num;
+    notes[row][col] = new Set(); // clear notes when placing number
+
+    // Auto-remove this number from notes in same row/col/box
+    if (num !== 0) {
+      const { gridSize } = puzzleData;
+      const { boxRows, boxCols } = getBoxDims(gridSize);
+      // Row
+      for (let c = 0; c < gridSize; c++) {
+        if (c !== col) notes[row][c].delete(num);
+      }
+      // Col
+      for (let r = 0; r < gridSize; r++) {
+        if (r !== row) notes[r][col].delete(num);
+      }
+      // Box
+      const br = Math.floor(row / boxRows) * boxRows;
+      const bc = Math.floor(col / boxCols) * boxCols;
+      for (let r = br; r < br + boxRows; r++) {
+        for (let c = bc; c < bc + boxCols; c++) {
+          if (r !== row || c !== col) notes[r][c].delete(num);
+        }
+      }
+    }
+  }
+
+  updateVisuals();
+
+  // Check if board is full
+  if (num !== 0) {
+    const { gridSize } = puzzleData;
+    let full = true;
+    for (let r = 0; r < gridSize && full; r++) {
+      for (let c = 0; c < gridSize && full; c++) {
+        if (board[r][c] === 0) full = false;
+      }
+    }
+    if (full) checkWin();
+  }
+}
+
+// ─── Find Conflicts ─────────────────────────────────────────────
+function findConflicts() {
+  const conflicts = new Set();
+  const { gridSize } = puzzleData;
+  const { boxRows, boxCols } = getBoxDims(gridSize);
+
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      const val = board[r][c];
+      if (val === 0) continue;
+
+      // Check row
+      for (let c2 = 0; c2 < gridSize; c2++) {
+        if (c2 !== c && board[r][c2] === val) {
+          conflicts.add(`${r},${c}`);
+          conflicts.add(`${r},${c2}`);
+        }
+      }
+      // Check col
+      for (let r2 = 0; r2 < gridSize; r2++) {
+        if (r2 !== r && board[r2][c] === val) {
+          conflicts.add(`${r},${c}`);
+          conflicts.add(`${r2},${c}`);
+        }
+      }
+      // Check box
+      const br = Math.floor(r / boxRows) * boxRows;
+      const bc = Math.floor(c / boxCols) * boxCols;
+      for (let r2 = br; r2 < br + boxRows; r2++) {
+        for (let c2 = bc; c2 < bc + boxCols; c2++) {
+          if ((r2 !== r || c2 !== c) && board[r2][c2] === val) {
+            conflicts.add(`${r},${c}`);
+            conflicts.add(`${r2},${c2}`);
+          }
+        }
+      }
+    }
+  }
+
+  return conflicts;
+}
+
+// ─── Update Visuals ─────────────────────────────────────────────
+function updateVisuals() {
+  const { gridSize } = puzzleData;
+  const conflicts = findConflicts();
+  const cells = boardEl.querySelectorAll('.cell');
+  const selectedVal = selectedCell ? board[selectedCell.row][selectedCell.col] : 0;
+
+  cells.forEach(cell => {
+    const r = parseInt(cell.dataset.row);
+    const c = parseInt(cell.dataset.col);
+    const key = `${r},${c}`;
+    const val = board[r][c];
+
+    cell.classList.remove('selected', 'given', 'conflict', 'same-number');
+
+    // Remove old content (but keep cell itself)
+    while (cell.firstChild) cell.removeChild(cell.firstChild);
+
+    if (givenSet.has(key)) cell.classList.add('given');
+
+    if (selectedCell && selectedCell.row === r && selectedCell.col === c) {
+      cell.classList.add('selected');
+    } else if (selectedVal !== 0 && val === selectedVal) {
+      cell.classList.add('same-number');
+    }
+
+    if (conflicts.has(key) && !givenSet.has(key)) {
+      cell.classList.add('conflict');
+    }
+
+    if (val !== 0) {
+      cell.textContent = val;
+    } else if (notes[r][c].size > 0) {
+      // Render notes grid
+      const ng = document.createElement('div');
+      ng.className = 'notes-grid ' + (gridSize === 6 ? 'g6' : 'g9');
+      for (let n = 1; n <= gridSize; n++) {
+        const nd = document.createElement('div');
+        nd.className = 'note-num';
+        if (notes[r][c].has(n)) nd.textContent = n;
+        ng.appendChild(nd);
+      }
+      cell.appendChild(ng);
+    }
+  });
+}
+
+// ─── Win Check ──────────────────────────────────────────────────
+function checkWin() {
+  const conflicts = findConflicts();
+  if (conflicts.size > 0) return;
+
+  // Verify complete (all cells filled, no conflicts)
+  const { gridSize, solution } = puzzleData;
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      if (board[r][c] !== solution[r][c]) return;
+    }
+  }
+
+  // WIN!
+  solved = true;
+  stopTimer();
+  completedLevels.add(currentLevel);
+  if (!bestTimes[currentLevel] || elapsed < bestTimes[currentLevel]) {
+    bestTimes[currentLevel] = elapsed;
+  }
+  saveProgress();
+  buildLevelSelector();
+
+  showMessage('Complimenti! Puzzle risolto!', 'success');
+
+  const isNewBest = elapsed === bestTimes[currentLevel];
+  setTimeout(() => {
+    document.getElementById('modalTime').textContent = formatTime(elapsed);
+    document.getElementById('modalMsg').textContent = `Livello ${currentLevel + 1} completato!` + (isNewBest ? ' Nuovo record!' : '');
+    overlayEl.classList.add('visible');
+  }, 600);
+}
+
+// ─── Undo ───────────────────────────────────────────────────────
+function undo() {
+  if (moveHistory.length === 0 || solved) return;
+
+  const move = moveHistory.pop();
+  board[move.row][move.col] = move.oldVal;
+  notes[move.row][move.col] = move.oldNotes;
+  updateVisuals();
+}
+
+// ─── Timer ──────────────────────────────────────────────────────
+function startTimer() {
+  if (timerRunning) return;
+  timerRunning = true;
+  startTime = Date.now() - elapsed;
+  timerInterval = setInterval(() => {
+    elapsed = Date.now() - startTime;
+    timerEl.textContent = formatTime(elapsed);
+  }, 100);
+}
+
+function stopTimer() {
+  timerRunning = false;
+  clearInterval(timerInterval);
+}
+
+function formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
+// ─── Messages ───────────────────────────────────────────────────
+function showMessage(text, type) {
+  messageEl.textContent = text;
+  messageEl.className = 'message visible ' + type;
+  setTimeout(() => hideMessage(), 3000);
+}
+
+function hideMessage() {
+  messageEl.classList.remove('visible');
+}
+
+// ─── Button handlers ────────────────────────────────────────────
+document.getElementById('btnUndo').addEventListener('click', undo);
+document.getElementById('btnReset').addEventListener('click', () => loadLevel(currentLevel));
+document.getElementById('btnNext').addEventListener('click', () => {
+  const next = (currentLevel + 1) % LEVEL_CONFIGS.length;
+  loadLevel(next);
+});
+
+// Keyboard support
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    undo();
+    return;
+  }
+  if (solved) return;
+
+  // Arrow keys to move selection
+  if (selectedCell && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+    e.preventDefault();
+    const { gridSize } = puzzleData;
+    let { row, col } = selectedCell;
+    if (e.key === 'ArrowUp') row = Math.max(0, row - 1);
+    if (e.key === 'ArrowDown') row = Math.min(gridSize - 1, row + 1);
+    if (e.key === 'ArrowLeft') col = Math.max(0, col - 1);
+    if (e.key === 'ArrowRight') col = Math.min(gridSize - 1, col + 1);
+    selectedCell = { row, col };
+    updateVisuals();
+    return;
+  }
+
+  // Number keys
+  const num = parseInt(e.key);
+  if (num >= 0 && num <= (puzzleData ? puzzleData.gridSize : 9)) {
+    placeNumber(num === 0 ? 0 : num);
+  }
+  if (e.key === 'Backspace' || e.key === 'Delete') {
+    placeNumber(0);
+  }
+  if (e.key === 'n' || e.key === 'N') {
+    notesMode = !notesMode;
+    const tb = document.getElementById('notesToggle');
+    if (tb) tb.classList.toggle('active', notesMode);
+  }
+});
+
+// ─── Init ───────────────────────────────────────────────────────
+const firstIncomplete = LEVEL_CONFIGS.findIndex((_, i) => !completedLevels.has(i));
+loadLevel(firstIncomplete >= 0 ? firstIncomplete : 0);
+</script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
+</body>
+</html>

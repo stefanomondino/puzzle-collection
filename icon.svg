@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7C6CF7"/>
+      <stop offset="100%" stop-color="#5A4BD6"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.25)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <rect width="512" height="256" rx="96" fill="url(#shine)"/>
+
+  <!-- 4 puzzle pieces fitting together, each a different fun color -->
+  <g transform="translate(256,256) scale(1.6)">
+    <!-- Top-left -->
+    <rect x="-90" y="-90" width="76" height="76" rx="16" fill="#FF6B6B"/>
+    <circle cx="-14" cy="-52" r="14" fill="#FF6B6B"/>
+    <circle cx="-52" cy="-14" r="14" fill="#FF6B6B"/>
+
+    <!-- Top-right -->
+    <rect x="14" y="-90" width="76" height="76" rx="16" fill="#FDCB6E"/>
+    <circle cx="14" cy="-52" r="14" fill="#FDCB6E"/>
+    <circle cx="52" cy="-14" r="14" fill="#FDCB6E"/>
+
+    <!-- Bottom-left -->
+    <rect x="-90" y="14" width="76" height="76" rx="16" fill="#55EFC4"/>
+    <circle cx="-14" cy="52" r="14" fill="#55EFC4"/>
+    <circle cx="-52" cy="14" r="14" fill="#55EFC4"/>
+
+    <!-- Bottom-right -->
+    <rect x="14" y="14" width="76" height="76" rx="16" fill="#74B9FF"/>
+    <circle cx="14" cy="52" r="14" fill="#74B9FF"/>
+    <circle cx="52" cy="14" r="14" fill="#74B9FF"/>
+
+    <!-- Fun face elements on each piece -->
+    <!-- Top-left: happy eyes -->
+    <circle cx="-64" cy="-58" r="6" fill="#fff"/>
+    <circle cx="-40" cy="-58" r="6" fill="#fff"/>
+    <circle cx="-64" cy="-59" r="3" fill="#2d2d2d"/>
+    <circle cx="-40" cy="-59" r="3" fill="#2d2d2d"/>
+    <path d="M-60,-42 Q-52,-34 -44,-42" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- Top-right: winking -->
+    <circle cx="40" cy="-58" r="6" fill="#fff"/>
+    <line x1="58" y1="-58" x2="68" y2="-58" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="40" cy="-59" r="3" fill="#2d2d2d"/>
+    <path d="M44,-42 Q52,-34 60,-42" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- Bottom-left: surprised -->
+    <circle cx="-64" cy="46" r="6" fill="#fff"/>
+    <circle cx="-40" cy="46" r="6" fill="#fff"/>
+    <circle cx="-64" cy="45" r="3" fill="#2d2d2d"/>
+    <circle cx="-40" cy="45" r="3" fill="#2d2d2d"/>
+    <circle cx="-52" cy="64" r="7" fill="none" stroke="#fff" stroke-width="3"/>
+
+    <!-- Bottom-right: cool sunglasses -->
+    <rect x="33" y="40" width="16" height="10" rx="4" fill="#fff" opacity="0.9"/>
+    <rect x="55" y="40" width="16" height="10" rx="4" fill="#fff" opacity="0.9"/>
+    <line x1="49" y1="45" x2="55" y2="45" stroke="#fff" stroke-width="2"/>
+    <path d="M44,60 Q52,68 60,60" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <!-- Sparkles around -->
+  <g fill="#fff" opacity="0.7">
+    <polygon points="420,80 424,92 436,96 424,100 420,112 416,100 404,96 416,92" transform="scale(0.7)"/>
+    <polygon points="140,400 143,408 151,411 143,414 140,422 137,414 129,411 137,408" transform="scale(0.8)"/>
+    <circle cx="400" cy="380" r="4"/>
+    <circle cx="100" cy="120" r="3"/>
+    <circle cx="430" cy="200" r="3"/>
+  </g>
+</svg>

@@ -1,0 +1,25 @@
+{
+  "name": "Puzzle Collection",
+  "short_name": "Puzzle",
+  "description": "Una collezione di puzzle games: PathTrace, Crowns, Armonia e Logica",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf8f5",
+  "theme_color": "#6C5CE7",
+  "lang": "it",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

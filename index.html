@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#6C5CE7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Puzzle">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
 <title>Puzzle Collection</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
@@ -124,11 +131,18 @@
   </a>
 
   <a href="armonia.html" class="game-card">
-    <div class="game-icon">🍕</div>
+    <div class="game-icon" style="display:flex;gap:6px;font-size:32px;"><span style="width:28px;height:28px;border-radius:50%;background:#E74C3C;display:inline-block;"></span><span style="width:28px;height:28px;border-radius:50%;background:#2980B9;display:inline-block;"></span></div>
     <h2>Armonia</h2>
-    <p>Bilancia pizze e ananas nella griglia</p>
+    <p>Bilancia i simboli nella griglia</p>
+  </a>
+
+  <a href="logica.html" class="game-card">
+    <div class="game-icon" style="font-size:36px;font-weight:800;color:#6C5CE7;font-family:serif;">9</div>
+    <h2>Logica</h2>
+    <p>Riempi la griglia con i numeri</p>
   </a>
 </div>
 
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
 </body>
 </html>
