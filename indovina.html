@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#6C5CE7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Puzzle">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Indovina - Puzzle Game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+  :root {
+    --bg: #faf8f5;
+    --card: #ffffff;
+    --primary: #6C5CE7;
+    --primary-light: #e8e4fd;
+    --text: #2d2d2d;
+    --text-muted: #777777;
+    --success: #00b894;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  header {
+    width: 100%;
+    max-width: 500px;
+    padding: 16px 20px 8px;
+    text-align: center;
+    position: relative;
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--primary);
+    text-transform: uppercase;
+  }
+
+  header p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 20px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn:active { transform: scale(0.95); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+  }
+
+  .btn-outline:hover { background: var(--primary-light); }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #5a4bd6; }
+
+  .stats {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 0 20px 8px;
+  }
+
+  .game-area {
+    width: 100%;
+    max-width: 500px;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .clue-container {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .clue-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .clues-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .clue-word {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    padding: 10px 24px;
+    border-radius: 12px;
+    background: var(--primary-light);
+    width: 100%;
+    text-align: center;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .clue-word.hidden-clue {
+    background: #eee;
+    color: #ccc;
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .score-dots {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    padding: 4px 0;
+  }
+
+  .score-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    transition: background 0.3s;
+  }
+
+  .score-dot.used { background: #ffb74d; }
+  .score-dot.success { background: var(--success); }
+
+  .guess-area {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .guess-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #d9d9d9;
+    border-radius: 12px;
+    font-size: 16px;
+    font-family: inherit;
+    font-weight: 600;
+    outline: none;
+    background: var(--card);
+    color: var(--text);
+    transition: border-color 0.2s;
+  }
+
+  .guess-input:focus { border-color: var(--primary); }
+  .guess-input::placeholder { color: #bbb; font-weight: 400; }
+
+  .guess-btn {
+    border: none;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--primary);
+    color: #fff;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .guess-btn:active { transform: scale(0.95); }
+  .guess-btn:hover { background: #5a4bd6; }
+  .guess-btn:disabled { opacity: 0.4; cursor: default; }
+
+  .history {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .history-item.wrong {
+    background: #fdecea;
+    color: #c62828;
+  }
+
+  .history-item.correct {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  .history-icon { font-size: 16px; }
+
+  .result-container {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    width: 100%;
+    text-align: center;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .result-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .result-title.win { color: var(--success); }
+  .result-title.lose { color: #c62828; }
+
+  .result-category {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--primary);
+    margin: 8px 0;
+  }
+
+  .result-words {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  .instructions {
+    max-width: 500px;
+    padding: 12px 20px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .overlay.visible { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px;
+    max-width: 340px;
+    width: 90%;
+    text-align: center;
+    animation: pop 0.3s ease;
+  }
+
+  @keyframes pop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .modal h2 { font-size: 24px; margin-bottom: 8px; color: var(--success); }
+  .modal p { color: var(--text-muted); margin-bottom: 20px; }
+  .modal .score { font-size: 36px; font-weight: 700; color: var(--text); margin: 8px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" style="position:absolute;left:16px;top:16px;color:var(--primary);text-decoration:none;font-size:18px;font-weight:600;">&larr; Menu</a>
+  <h1>Indovina</h1>
+  <p>Trova la categoria che collega le parole</p>
+</header>
+
+<div class="toolbar">
+  <button class="btn btn-outline" id="btnSkip">Salta &rarr;</button>
+  <button class="btn btn-outline" id="btnNew">&#10227; Nuovo</button>
+</div>
+
+<p class="stats" id="stats"></p>
+
+<div class="game-area" id="gameArea">
+  <div class="score-dots" id="scoreDots"></div>
+  <div class="clue-container" id="clueContainer">
+    <div class="clue-label">Indizi</div>
+    <div class="clues-list" id="cluesList"></div>
+  </div>
+  <div class="guess-area" id="guessArea">
+    <input type="text" class="guess-input" id="guessInput" placeholder="Scrivi la categoria..." autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button class="guess-btn" id="guessBtn">Prova</button>
+  </div>
+  <div class="history" id="history"></div>
+</div>
+
+<p class="instructions">
+  Le parole rivelate appartengono tutte a una stessa categoria.<br>
+  <strong>Indovina</strong> la categoria usando meno indizi possibili.<br>
+  Hai <strong>5 tentativi</strong>. Ogni errore rivela un nuovo indizio.
+</p>
+
+<script>
+// ─── Seeded PRNG (Mulberry32) ───────────────────────────────────
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function shuffleArray(arr, rng) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ─── Puzzle Bank ────────────────────────────────────────────────
+const PUZZLES = [
+  { category: "Frutti rossi", words: ["fragola", "ciliegia", "lampone", "ribes", "mirtillo rosso"] },
+  { category: "Capitali europee", words: ["Berlino", "Parigi", "Madrid", "Lisbona", "Vienna"] },
+  { category: "Strumenti a corda", words: ["chitarra", "violino", "arpa", "ukulele", "mandolino"] },
+  { category: "Pianeti del sistema solare", words: ["Marte", "Venere", "Saturno", "Giove", "Nettuno"] },
+  { category: "Tipi di pasta", words: ["penne", "fusilli", "rigatoni", "farfalle", "orecchiette"] },
+  { category: "Sport con la palla", words: ["tennis", "pallavolo", "rugby", "cricket", "polo"] },
+  { category: "Materiali da costruzione", words: ["cemento", "mattone", "acciaio", "vetro", "legno"] },
+  { category: "Danze", words: ["tango", "valzer", "samba", "polka", "flamenco"] },
+  { category: "Elementi chimici", words: ["ossigeno", "carbonio", "ferro", "oro", "argento"] },
+  { category: "Razze di cani", words: ["labrador", "pastore tedesco", "beagle", "bulldog", "husky"] },
+  { category: "Colori dell'arcobaleno", words: ["rosso", "arancione", "giallo", "verde", "blu"] },
+  { category: "Monumenti famosi", words: ["Colosseo", "Torre Eiffel", "Big Ben", "Taj Mahal", "Partenone"] },
+  { category: "Generi musicali", words: ["jazz", "blues", "reggae", "punk", "soul"] },
+  { category: "Fiori", words: ["rosa", "tulipano", "girasole", "orchidea", "margherita"] },
+  { category: "Mammiferi marini", words: ["delfino", "balena", "foca", "tricheco", "orca"] },
+  { category: "Spezie", words: ["cannella", "curcuma", "zafferano", "paprika", "noce moscata"] },
+  { category: "Tessuti", words: ["seta", "cotone", "lino", "lana", "velluto"] },
+  { category: "Vulcani", words: ["Etna", "Vesuvio", "Fuji", "Krakatoa", "Stromboli"] },
+  { category: "Giochi da tavolo", words: ["scacchi", "dama", "Monopoly", "Risiko", "backgammon"] },
+  { category: "Organi del corpo", words: ["cuore", "fegato", "polmone", "rene", "cervello"] },
+  { category: "Film di Hitchcock", words: ["Psycho", "Vertigo", "Rebecca", "Notorious", "Rope"] },
+  { category: "Tipi di formaggio", words: ["parmigiano", "mozzarella", "gorgonzola", "pecorino", "fontina"] },
+  { category: "Isole italiane", words: ["Sicilia", "Sardegna", "Elba", "Capri", "Ischia"] },
+  { category: "Costellazioni", words: ["Orione", "Cassiopea", "Andromeda", "Scorpione", "Pegaso"] },
+  { category: "Mestieri medievali", words: ["fabbro", "alchimista", "araldo", "boia", "menestrello"] },
+  { category: "Alberi", words: ["quercia", "pino", "betulla", "olivo", "cipresso"] },
+  { category: "Pittori italiani", words: ["Caravaggio", "Botticelli", "Raffaello", "Tiziano", "Modigliani"] },
+  { category: "Monete storiche", words: ["ducato", "fiorino", "doblone", "sterlina", "tallero"] },
+  { category: "Tipi di nuvole", words: ["cirro", "cumulo", "nembo", "strato", "altocumulo"] },
+  { category: "Supereroi Marvel", words: ["Spider-Man", "Iron Man", "Thor", "Hulk", "Wolverine"] },
+  { category: "Venti", words: ["tramontana", "scirocco", "maestrale", "libeccio", "grecale"] },
+  { category: "Invenzioni italiane", words: ["pianoforte", "radio", "telefono", "batteria", "barometro"] },
+  { category: "Laghi italiani", words: ["Garda", "Como", "Maggiore", "Trasimeno", "Bolsena"] },
+  { category: "Dolci italiani", words: ["tiramisu", "panna cotta", "cannolo", "baba", "cassata"] },
+  { category: "Filosofi greci", words: ["Socrate", "Platone", "Aristotele", "Epicuro", "Diogene"] },
+  { category: "Pezzi degli scacchi", words: ["re", "regina", "torre", "alfiere", "cavallo"] },
+  { category: "Lingue romanze", words: ["italiano", "spagnolo", "francese", "portoghese", "rumeno"] },
+  { category: "Verdure a foglia", words: ["spinaci", "lattuga", "rucola", "cavolo", "bietola"] },
+  { category: "Pietre preziose", words: ["diamante", "rubino", "smeraldo", "zaffiro", "topazio"] },
+  { category: "Opere di Verdi", words: ["Aida", "Traviata", "Rigoletto", "Nabucco", "Otello"] },
+  { category: "Dita della mano", words: ["pollice", "indice", "medio", "anulare", "mignolo"] },
+  { category: "Sensi", words: ["vista", "udito", "olfatto", "gusto", "tatto"] },
+  { category: "Continenti", words: ["Europa", "Asia", "Africa", "Oceania", "America"] },
+  { category: "Creature mitologiche", words: ["drago", "fenice", "minotauro", "centauro", "grifone"] },
+  { category: "Tipi di pane", words: ["focaccia", "ciabatta", "grissino", "baguette", "pretzel"] },
+  { category: "Sport invernali", words: ["sci", "biathlon", "slittino", "pattinaggio", "curling"] },
+  { category: "Oceani", words: ["Pacifico", "Atlantico", "Indiano", "Artico", "Antartico"] },
+  { category: "Note musicali", words: ["do", "re", "mi", "fa", "sol"] },
+  { category: "Re di Roma", words: ["Romolo", "Numa", "Anco", "Tarquinio", "Servio"] },
+  { category: "Deserti", words: ["Sahara", "Gobi", "Kalahari", "Atacama", "Mojave"] },
+];
+
+const MAX_GUESSES = 5;
+const TOTAL_CLUES = 5;
+
+// ─── Persistence ────────────────────────────────────────────────
+const STORAGE_KEY = 'pinpoint_stats';
+function loadStats() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (data && typeof data.played === 'number') return data;
+  } catch(e) {}
+  return { played: 0, won: 0, totalScore: 0, bestScore: 0 };
+}
+function saveStats() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+}
+let stats = loadStats();
+
+// ─── Game State ─────────────────────────────────────────────────
+let currentPuzzle = null;
+let revealedCount = 1;
+let guessesUsed = 0;
+let guessHistory = [];
+let gameOver = false;
+
+// ─── DOM refs ───────────────────────────────────────────────────
+const cluesList = document.getElementById('cluesList');
+const scoreDots = document.getElementById('scoreDots');
+const guessInput = document.getElementById('guessInput');
+const guessBtn = document.getElementById('guessBtn');
+const guessArea = document.getElementById('guessArea');
+const historyEl = document.getElementById('history');
+const statsEl = document.getElementById('stats');
+
+// ─── Stats Display ──────────────────────────────────────────────
+function updateStatsDisplay() {
+  let text = `Giocate: ${stats.played} \u00B7 Vinte: ${stats.won}`;
+  if (stats.bestScore > 0) text += ` \u00B7 Miglior punteggio: ${stats.bestScore}/${MAX_GUESSES}`;
+  statsEl.textContent = text;
+}
+
+// ─── New Game ───────────────────────────────────────────────────
+function newGame() {
+  const seed = (Date.now() ^ (Math.random() * 0xFFFF)) & 0xFFFFFF;
+  const rng = mulberry32(seed);
+  const idx = Math.floor(rng() * PUZZLES.length);
+  const puzzle = PUZZLES[idx];
+
+  currentPuzzle = {
+    category: puzzle.category,
+    words: shuffleArray([...puzzle.words], rng),
+    acceptedAnswers: buildAcceptedAnswers(puzzle.category)
+  };
+
+  revealedCount = 1;
+  guessesUsed = 0;
+  guessHistory = [];
+  gameOver = false;
+
+  guessArea.style.display = 'flex';
+  guessInput.value = '';
+  guessInput.disabled = false;
+  guessBtn.disabled = false;
+  historyEl.innerHTML = '';
+
+  updateStatsDisplay();
+  renderClues();
+  renderDots();
+  guessInput.focus();
+}
+
+// ─── Build accepted answers (fuzzy matching) ────────────────────
+function buildAcceptedAnswers(category) {
+  const normalized = normalize(category);
+  const answers = [normalized];
+  // Also accept without articles/prepositions
+  const stripped = normalized
+    .replace(/\b(del|dello|della|dei|degli|delle|di|da|in|con|su|per|tra|fra|il|lo|la|i|gli|le|un|uno|una|a|e)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (stripped && stripped !== normalized) answers.push(stripped);
+  return answers;
+}
+
+function normalize(str) {
+  return str
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// ─── Render Clues ───────────────────────────────────────────────
+function renderClues() {
+  cluesList.innerHTML = '';
+
+  for (let i = 0; i < TOTAL_CLUES; i++) {
+    const div = document.createElement('div');
+    if (i < revealedCount) {
+      div.className = 'clue-word';
+      div.textContent = currentPuzzle.words[i];
+    } else {
+      div.className = 'clue-word hidden-clue';
+      div.textContent = `Indizio ${i + 1}`;
+    }
+    cluesList.appendChild(div);
+  }
+}
+
+// ─── Render Score Dots ──────────────────────────────────────────
+function renderDots() {
+  scoreDots.innerHTML = '';
+  for (let i = 0; i < MAX_GUESSES; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'score-dot';
+    if (i < guessesUsed) {
+      const wasCorrect = gameOver && i === guessesUsed - 1 && guessHistory[i] && guessHistory[i].correct;
+      dot.classList.add(wasCorrect ? 'success' : 'used');
+    }
+    scoreDots.appendChild(dot);
+  }
+}
+
+// ─── Guess ──────────────────────────────────────────────────────
+function makeGuess() {
+  const raw = guessInput.value.trim();
+  if (!raw || gameOver) return;
+
+  const normalizedGuess = normalize(raw);
+  guessesUsed++;
+
+  const isCorrect = currentPuzzle.acceptedAnswers.some(ans => {
+    if (normalizedGuess === ans) return true;
+    // Levenshtein distance for close matches
+    if (ans.length > 4 && levenshtein(normalizedGuess, ans) <= 2) return true;
+    // Check if guess contains the key words
+    const guessWords = normalizedGuess.split(' ').filter(w => w.length > 2);
+    const ansWords = ans.split(' ').filter(w => w.length > 2);
+    if (ansWords.length > 0 && ansWords.every(aw => guessWords.some(gw => levenshtein(gw, aw) <= 1))) return true;
+    return false;
+  });
+
+  guessHistory.push({ text: raw, correct: isCorrect });
+
+  const item = document.createElement('div');
+  item.className = 'history-item ' + (isCorrect ? 'correct' : 'wrong');
+  item.innerHTML = `<span class="history-icon">${isCorrect ? '\u2713' : '\u2717'}</span> ${escapeHtml(raw)}`;
+  historyEl.appendChild(item);
+
+  guessInput.value = '';
+
+  if (isCorrect) {
+    endGame(true);
+  } else if (guessesUsed >= MAX_GUESSES) {
+    endGame(false);
+  } else {
+    // Reveal next clue
+    if (revealedCount < TOTAL_CLUES) {
+      revealedCount++;
+      renderClues();
+    }
+    renderDots();
+    guessInput.focus();
+  }
+}
+
+// ─── End Game ───────────────────────────────────────────────────
+function endGame(won) {
+  gameOver = true;
+  guessInput.disabled = true;
+  guessBtn.disabled = true;
+
+  // Reveal all clues
+  revealedCount = TOTAL_CLUES;
+  renderClues();
+  renderDots();
+
+  stats.played++;
+  if (won) {
+    stats.won++;
+    const score = MAX_GUESSES - guessesUsed + 1;
+    stats.totalScore += score;
+    if (score > stats.bestScore) stats.bestScore = score;
+  }
+  saveStats();
+  updateStatsDisplay();
+
+  // Show result
+  const resultDiv = document.createElement('div');
+  resultDiv.className = 'result-container';
+
+  if (won) {
+    const score = MAX_GUESSES - guessesUsed + 1;
+    resultDiv.innerHTML = `
+      <div class="result-title win">Esatto!</div>
+      <div class="result-category">${escapeHtml(currentPuzzle.category)}</div>
+      <div class="result-words">${currentPuzzle.words.map(w => escapeHtml(w)).join(' \u00B7 ')}</div>
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:12px;">Punteggio: ${score}/${MAX_GUESSES} ${guessesUsed === 1 ? '\u2014 Perfetto!' : ''}</div>
+      <button class="btn btn-primary" onclick="newGame()">Nuovo puzzle &rarr;</button>
+    `;
+  } else {
+    resultDiv.innerHTML = `
+      <div class="result-title lose">La risposta era...</div>
+      <div class="result-category">${escapeHtml(currentPuzzle.category)}</div>
+      <div class="result-words">${currentPuzzle.words.map(w => escapeHtml(w)).join(' \u00B7 ')}</div>
+      <button class="btn btn-primary" onclick="newGame()">Riprova &rarr;</button>
+    `;
+  }
+
+  guessArea.style.display = 'none';
+  historyEl.appendChild(resultDiv);
+}
+
+// ─── Levenshtein Distance ───────────────────────────────────────
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({length: m + 1}, (_, i) => {
+    const row = new Array(n + 1);
+    row[0] = i;
+    return row;
+  });
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i-1] === b[j-1]
+        ? dp[i-1][j-1]
+        : 1 + Math.min(dp[i-1][j-1], dp[i-1][j], dp[i][j-1]);
+    }
+  }
+  return dp[m][n];
+}
+
+// ─── Utility ────────────────────────────────────────────────────
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ─── Event Handlers ─────────────────────────────────────────────
+guessBtn.addEventListener('click', makeGuess);
+guessInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    makeGuess();
+  }
+});
+
+document.getElementById('btnSkip').addEventListener('click', () => {
+  if (gameOver) return;
+  guessesUsed++;
+  guessHistory.push({ text: '(saltato)', correct: false });
+
+  const item = document.createElement('div');
+  item.className = 'history-item wrong';
+  item.innerHTML = '<span class="history-icon">\u2717</span> <em>(saltato)</em>';
+  historyEl.appendChild(item);
+
+  if (guessesUsed >= MAX_GUESSES) {
+    endGame(false);
+  } else {
+    if (revealedCount < TOTAL_CLUES) {
+      revealedCount++;
+      renderClues();
+    }
+    renderDots();
+    guessInput.focus();
+  }
+});
+
+document.getElementById('btnNew').addEventListener('click', newGame);
+
+// ─── Init ───────────────────────────────────────────────────────
+newGame();
+</script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
+</body>
+</html>

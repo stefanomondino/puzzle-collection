@@ -1,7 +1,7 @@
 {
   "name": "Puzzle Collection",
   "short_name": "Puzzle",
-  "description": "Una collezione di puzzle games: PathTrace, Crowns, Armonia e Logica",
+  "description": "Una collezione di puzzle games: PathTrace, Crowns, Armonia, Logica, Indovina, La Bamba, Confini e Scaletta",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

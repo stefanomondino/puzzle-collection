@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#6C5CE7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Puzzle">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>La Bamba - Puzzle Game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+  :root {
+    --bg: #faf8f5;
+    --card: #ffffff;
+    --primary: #6C5CE7;
+    --primary-light: #e8e4fd;
+    --text: #2d2d2d;
+    --text-muted: #777777;
+    --success: #00b894;
+    --error: #d63031;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  header {
+    width: 100%;
+    max-width: 500px;
+    padding: 16px 20px 8px;
+    text-align: center;
+    position: relative;
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--primary);
+    text-transform: uppercase;
+  }
+
+  header p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 20px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn:active { transform: scale(0.95); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+  }
+
+  .btn-outline:hover { background: var(--primary-light); }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #5a4bd6; }
+
+  .stats-line {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 0 20px 8px;
+  }
+
+  .game-area {
+    width: 100%;
+    max-width: 500px;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* --- Player --- */
+  .player-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .album-art {
+    width: 120px;
+    height: 120px;
+    border-radius: 12px;
+    background: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .album-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(20px) brightness(0.7);
+    transition: filter 0.5s;
+  }
+
+  .album-art img.revealed { filter: none; }
+
+  .album-art .play-icon {
+    position: absolute;
+    font-size: 40px;
+    color: white;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+
+  .album-art .play-icon:active { transform: scale(0.9); }
+
+  .progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #e8e8e8;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.1s linear;
+  }
+
+  .player-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* --- Options --- */
+  .options {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .option-btn {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 14px;
+    background: var(--card);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    line-height: 1.3;
+  }
+
+  .option-btn:active { transform: scale(0.98); }
+  .option-btn:hover { border-color: var(--primary); background: var(--primary-light); }
+
+  .option-btn.correct { border-color: var(--success); background: #e8f5e9; color: #2e7d32; }
+  .option-btn.wrong { border-color: var(--error); background: #fdecea; color: #c62828; }
+  .option-btn.dimmed { opacity: 0.4; pointer-events: none; }
+
+  .option-btn .opt-artist {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 2px;
+  }
+
+  .option-btn.correct .opt-artist,
+  .option-btn.wrong .opt-artist { color: inherit; opacity: 0.7; }
+
+  /* --- Score dots --- */
+  .score-dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 4px 0;
+  }
+
+  .score-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    transition: background 0.3s, transform 0.3s;
+  }
+
+  .score-dot.current { transform: scale(1.3); border: 2px solid var(--primary); background: #fff; }
+  .score-dot.correct { background: var(--success); }
+  .score-dot.wrong { background: var(--error); }
+
+  /* --- Loading / Error --- */
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 16px;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e8e8e8;
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    text-align: center;
+    color: var(--error);
+    padding: 20px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* --- Result --- */
+  .result-container {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    width: 100%;
+    text-align: center;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .result-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .result-title.great { color: var(--success); }
+  .result-title.ok { color: #f39c12; }
+  .result-title.bad { color: var(--error); }
+
+  .result-score { font-size: 48px; font-weight: 800; color: var(--primary); margin: 8px 0; }
+
+  .result-detail { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.6; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .instructions {
+    max-width: 500px;
+    padding: 12px 20px 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* --- Stats Modal --- */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .overlay.visible { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px;
+    max-width: 340px;
+    width: 90%;
+    text-align: center;
+    animation: pop 0.3s ease;
+  }
+
+  @keyframes pop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .modal h2 { font-size: 22px; margin-bottom: 16px; color: var(--primary); }
+  .modal .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 15px;
+  }
+  .modal .stat-row:last-child { border-bottom: none; }
+  .modal .stat-label { color: var(--text-muted); }
+  .modal .stat-value { font-weight: 700; color: var(--text); }
+
+  /* --- Genre selector --- */
+  .genre-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 4px 0;
+  }
+
+  .genre-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 2px solid #e0e0e0;
+    background: var(--card);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .genre-chip:active { transform: scale(0.95); }
+  .genre-chip.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" style="position:absolute;left:16px;top:16px;color:var(--primary);text-decoration:none;font-size:18px;font-weight:600;">&larr; Menu</a>
+  <button id="btnStats" style="position:absolute;right:16px;top:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--primary);">&#x1F3C6;</button>
+  <h1>La Bamba</h1>
+  <p>Riconosci la canzone dalla preview</p>
+</header>
+
+<div class="toolbar">
+  <div class="genre-selector" id="genreSelector"></div>
+</div>
+
+<div class="toolbar" id="startToolbar">
+  <button class="btn btn-primary" id="btnStart">Nuova partita</button>
+</div>
+
+<p class="stats-line" id="statsLine"></p>
+
+<div class="game-area" id="gameArea"></div>
+
+<p class="instructions" id="instructions">
+  Ascolta la preview di una canzone e scegli il titolo corretto tra 4 opzioni.<br>
+  <strong>10 round</strong> per partita. Quanto sei in <strong>sintonia</strong> con la musica?
+</p>
+
+<!-- Stats Modal -->
+<div class="overlay" id="statsOverlay">
+  <div class="modal">
+    <h2>Statistiche</h2>
+    <div id="statsContent"></div>
+    <button class="btn btn-primary" style="margin-top:16px;" onclick="document.getElementById('statsOverlay').classList.remove('visible')">Chiudi</button>
+  </div>
+</div>
+
+<script>
+// ─── Seeded PRNG (Mulberry32) ───────────────────────────────────
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function shuffleArray(arr, rng) {
+  const fn = rng || Math.random;
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(fn() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ─── Search terms bank ──────────────────────────────────────────
+const GENRES = {
+  'Pop': [
+    'Michael Jackson', 'Madonna', 'Ed Sheeran', 'Adele', 'Bruno Mars',
+    'Taylor Swift', 'Rihanna', 'Lady Gaga', 'Dua Lipa', 'The Weeknd',
+    'Beyonce', 'Justin Timberlake', 'Katy Perry', 'Shakira', 'Coldplay',
+    'Maroon 5', 'Pink', 'Sam Smith', 'Billie Eilish', 'Harry Styles',
+    'Ariana Grande', 'Post Malone', 'Sia', 'Imagine Dragons', 'OneRepublic'
+  ],
+  'Italiana': [
+    'Lucio Battisti', 'Mina', 'Vasco Rossi', 'Ligabue', 'Laura Pausini',
+    'Eros Ramazzotti', 'Zucchero', 'Tiziano Ferro', 'Jovanotti', 'Adriano Celentano',
+    'Fabrizio De Andre', 'Franco Battiato', 'Gianna Nannini', 'Pino Daniele', 'Renato Zero',
+    'Claudio Baglioni', 'Cesare Cremonini', 'Elisa', 'Negramaro', 'Moda',
+    'Maneskin', 'Blanco', 'Mahmood', 'Annalisa', 'Ultimo'
+  ],
+  'Rock': [
+    'Queen', 'Led Zeppelin', 'Pink Floyd', 'AC DC', 'Nirvana',
+    'U2', 'Guns N Roses', 'The Rolling Stones', 'Foo Fighters', 'Red Hot Chili Peppers',
+    'Bon Jovi', 'Aerosmith', 'Metallica', 'Green Day', 'Linkin Park',
+    'Oasis', 'Radiohead', 'The Who', 'Deep Purple', 'Black Sabbath'
+  ],
+  'Anni 80': [
+    'a-ha', 'Duran Duran', 'Depeche Mode', 'Cyndi Lauper', 'Tears for Fears',
+    'Eurythmics', 'Wham', 'Culture Club', 'Spandau Ballet', 'Pet Shop Boys',
+    'Simple Minds', 'The Cure', 'Frankie Goes to Hollywood', 'Bonnie Tyler', 'Toto',
+    'Phil Collins', 'Dire Straits', 'Bryan Adams', 'Whitney Houston', 'George Michael'
+  ]
+};
+
+const GENRE_KEYS = Object.keys(GENRES);
+let selectedGenre = 'Pop';
+
+// ─── iTunes Search API ──────────────────────────────────────────
+async function searchiTunes(term, limit = 10) {
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&limit=${limit}&country=it`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('Errore nella ricerca');
+  const data = await resp.json();
+  return data.results.filter(r => r.previewUrl && r.trackName && r.artistName);
+}
+
+// ─── Persistence (localStorage) ─────────────────────────────────
+const STORAGE_KEY = 'labamba_stats';
+
+function loadStats() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (data && typeof data.gamesPlayed === 'number') return data;
+  } catch(e) {}
+  return { gamesPlayed: 0, gamesWon: 0, currentStreak: 0, maxStreak: 0, lastPlayed: null, totalCorrect: 0, totalRounds: 0, bestTimeMs: null };
+}
+
+function saveStats() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+}
+
+let stats = loadStats();
+
+// ─── Game State ─────────────────────────────────────────────────
+const ROUNDS_PER_GAME = 10;
+let rounds = [];
+let currentRound = 0;
+let score = 0;
+let roundResults = [];
+let gameActive = false;
+let audio = null;
+let progressInterval = null;
+let roundStartMs = 0;       // timestamp inizio round
+let roundTimesMs = [];       // tempo di risposta per ogni round (ms)
+let totalGameMs = 0;         // tempo totale partita
+
+// ─── DOM refs ───────────────────────────────────────────────────
+const gameArea = document.getElementById('gameArea');
+const statsLine = document.getElementById('statsLine');
+const genreSelector = document.getElementById('genreSelector');
+const btnStart = document.getElementById('btnStart');
+const startToolbar = document.getElementById('startToolbar');
+const instructionsEl = document.getElementById('instructions');
+
+// ─── Genre Selector ─────────────────────────────────────────────
+function renderGenres() {
+  genreSelector.innerHTML = '';
+  GENRE_KEYS.forEach(g => {
+    const chip = document.createElement('button');
+    chip.className = 'genre-chip' + (g === selectedGenre ? ' active' : '');
+    chip.textContent = g;
+    chip.onclick = () => {
+      selectedGenre = g;
+      renderGenres();
+    };
+    genreSelector.appendChild(chip);
+  });
+}
+
+// ─── Stats Display ──────────────────────────────────────────────
+function updateStatsDisplay() {
+  const avg = stats.totalRounds > 0 ? Math.round(stats.totalCorrect / stats.totalRounds * 100) : 0;
+  statsLine.textContent = `Partite: ${stats.gamesPlayed} · Precisione: ${avg}% · Streak: ${stats.currentStreak}`;
+}
+
+function showStatsModal() {
+  const avg = stats.totalRounds > 0 ? Math.round(stats.totalCorrect / stats.totalRounds * 100) : 0;
+  document.getElementById('statsContent').innerHTML = `
+    <div class="stat-row"><span class="stat-label">Partite giocate</span><span class="stat-value">${stats.gamesPlayed}</span></div>
+    <div class="stat-row"><span class="stat-label">Partite vinte (&ge;7/10)</span><span class="stat-value">${stats.gamesWon}</span></div>
+    <div class="stat-row"><span class="stat-label">Risposte corrette</span><span class="stat-value">${stats.totalCorrect}/${stats.totalRounds}</span></div>
+    <div class="stat-row"><span class="stat-label">Precisione</span><span class="stat-value">${avg}%</span></div>
+    <div class="stat-row"><span class="stat-label">Streak attuale</span><span class="stat-value">${stats.currentStreak}</span></div>
+    <div class="stat-row"><span class="stat-label">Miglior streak</span><span class="stat-value">${stats.maxStreak}</span></div>
+    <div class="stat-row"><span class="stat-label">Miglior tempo</span><span class="stat-value">${stats.bestTimeMs !== null ? formatTime(stats.bestTimeMs) : '-'}</span></div>
+  `;
+  document.getElementById('statsOverlay').classList.add('visible');
+}
+
+// ─── Build rounds from iTunes data ─────────────────────────────
+async function buildRounds() {
+  const terms = [...GENRES[selectedGenre]];
+  shuffleArray(terms);
+
+  // Fetch songs from multiple artists to get variety
+  const allSongs = [];
+  const fetchPromises = terms.slice(0, 15).map(async (term) => {
+    try {
+      const results = await searchiTunes(term, 8);
+      results.forEach(r => {
+        if (!allSongs.find(s => s.trackId === r.trackId)) {
+          allSongs.push(r);
+        }
+      });
+    } catch(e) { /* skip failed searches */ }
+  });
+
+  await Promise.all(fetchPromises);
+
+  if (allSongs.length < ROUNDS_PER_GAME + 3) {
+    throw new Error('Non sono state trovate abbastanza canzoni. Riprova.');
+  }
+
+  shuffleArray(allSongs);
+
+  const roundsData = [];
+  const usedTrackIds = new Set();
+
+  for (let i = 0; i < allSongs.length && roundsData.length < ROUNDS_PER_GAME; i++) {
+    const correct = allSongs[i];
+    if (usedTrackIds.has(correct.trackId)) continue;
+
+    // Find 3 distractors (different artist when possible)
+    const distractors = allSongs
+      .filter(s => s.trackId !== correct.trackId && !usedTrackIds.has(s.trackId) && s.artistName !== correct.artistName)
+      .slice(0, 3);
+
+    if (distractors.length < 3) {
+      const extra = allSongs
+        .filter(s => s.trackId !== correct.trackId && !usedTrackIds.has(s.trackId) && !distractors.find(d => d.trackId === s.trackId))
+        .slice(0, 3 - distractors.length);
+      distractors.push(...extra);
+    }
+
+    if (distractors.length < 3) continue;
+
+    usedTrackIds.add(correct.trackId);
+
+    const options = shuffleArray([
+      { trackName: correct.trackName, artistName: correct.artistName, isCorrect: true },
+      ...distractors.map(d => ({ trackName: d.trackName, artistName: d.artistName, isCorrect: false }))
+    ]);
+
+    roundsData.push({
+      previewUrl: correct.previewUrl,
+      artworkUrl: correct.artworkUrl100 || correct.artworkUrl60 || '',
+      trackName: correct.trackName,
+      artistName: correct.artistName,
+      options
+    });
+  }
+
+  if (roundsData.length < ROUNDS_PER_GAME) {
+    throw new Error('Non sono state trovate abbastanza canzoni diverse. Riprova.');
+  }
+
+  return roundsData;
+}
+
+// ─── Start Game ─────────────────────────────────────────────────
+async function startGame() {
+  stopAudio();
+  gameActive = false;
+  currentRound = 0;
+  score = 0;
+  roundResults = [];
+  roundTimesMs = [];
+  totalGameMs = 0;
+  btnStart.disabled = true;
+  btnStart.textContent = 'Caricamento...';
+  instructionsEl.style.display = 'none';
+
+  gameArea.innerHTML = '<div class="loading"><div class="spinner"></div><span>Caricamento brani...</span></div>';
+
+  try {
+    rounds = await buildRounds();
+    gameActive = true;
+    startToolbar.style.display = 'none';
+    genreSelector.parentElement.style.display = 'none';
+    renderRound();
+  } catch(e) {
+    gameArea.innerHTML = `<div class="error-msg">${escapeHtml(e.message)}<br><br>Verifica la connessione e riprova.</div>`;
+    btnStart.disabled = false;
+    btnStart.textContent = 'Nuova partita';
+    instructionsEl.style.display = '';
+  }
+}
+
+// ─── Render Round ───────────────────────────────────────────────
+function renderRound() {
+  const round = rounds[currentRound];
+
+  gameArea.innerHTML = `
+    <div class="score-dots" id="scoreDots"></div>
+    <div class="player-card">
+      <div class="player-label">Round ${currentRound + 1} di ${ROUNDS_PER_GAME}</div>
+      <div class="album-art" id="albumArt">
+        ${round.artworkUrl ? `<img src="${escapeHtml(round.artworkUrl)}" alt="" id="artImg">` : ''}
+        <span class="play-icon" id="playIcon">&#9654;</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+    <div class="options" id="optionsContainer"></div>
+  `;
+
+  renderScoreDots();
+  renderOptions(round);
+
+  roundStartMs = performance.now();
+
+  const playIcon = document.getElementById('playIcon');
+  playIcon.onclick = () => playPreview(round.previewUrl);
+  playPreview(round.previewUrl);
+}
+
+function renderScoreDots() {
+  const container = document.getElementById('scoreDots');
+  if (!container) return;
+  container.innerHTML = '';
+  for (let i = 0; i < ROUNDS_PER_GAME; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'score-dot';
+    if (i < roundResults.length) {
+      dot.classList.add(roundResults[i] ? 'correct' : 'wrong');
+    } else if (i === currentRound) {
+      dot.classList.add('current');
+    }
+    container.appendChild(dot);
+  }
+}
+
+function renderOptions(round) {
+  const container = document.getElementById('optionsContainer');
+  container.innerHTML = '';
+  round.options.forEach((opt, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `${escapeHtml(opt.trackName)}<span class="opt-artist">${escapeHtml(opt.artistName)}</span>`;
+    btn.onclick = () => handleAnswer(idx, opt.isCorrect, round);
+    container.appendChild(btn);
+  });
+}
+
+// ─── Audio Playback ─────────────────────────────────────────────
+function playPreview(url) {
+  stopAudio();
+  audio = new Audio(url);
+  audio.volume = 0.8;
+  audio.play().catch(() => {});
+
+  const fill = document.getElementById('progressFill');
+  const playIcon = document.getElementById('playIcon');
+  if (playIcon) playIcon.textContent = '\u23F8';
+
+  progressInterval = setInterval(() => {
+    if (audio && audio.duration) {
+      const pct = (audio.currentTime / audio.duration) * 100;
+      if (fill) fill.style.width = pct + '%';
+    }
+  }, 100);
+
+  audio.onended = () => {
+    clearInterval(progressInterval);
+    if (fill) fill.style.width = '100%';
+    if (playIcon) playIcon.textContent = '\u25B6';
+  };
+
+  audio.onpause = () => {
+    if (playIcon && !audio.ended) playIcon.textContent = '\u25B6';
+  };
+
+  audio.onplay = () => {
+    if (playIcon) playIcon.textContent = '\u23F8';
+  };
+
+  if (playIcon) {
+    playIcon.onclick = () => {
+      if (!audio) return;
+      if (audio.paused) {
+        audio.play().catch(() => {});
+      } else {
+        audio.pause();
+      }
+    };
+  }
+}
+
+function stopAudio() {
+  if (audio) {
+    audio.pause();
+    audio.src = '';
+    audio = null;
+  }
+  if (progressInterval) {
+    clearInterval(progressInterval);
+    progressInterval = null;
+  }
+}
+
+// ─── Handle Answer ──────────────────────────────────────────────
+function handleAnswer(selectedIdx, isCorrect, round) {
+  const elapsed = Math.round(performance.now() - roundStartMs);
+  roundTimesMs.push(elapsed);
+  totalGameMs += elapsed;
+
+  const buttons = document.querySelectorAll('.option-btn');
+  buttons.forEach((btn, i) => {
+    btn.style.pointerEvents = 'none';
+    if (round.options[i].isCorrect) {
+      btn.classList.add('correct');
+    } else if (i === selectedIdx && !isCorrect) {
+      btn.classList.add('wrong');
+    } else {
+      btn.classList.add('dimmed');
+    }
+  });
+
+  if (isCorrect) score++;
+  roundResults.push(isCorrect);
+
+  // Reveal album art
+  const artImg = document.getElementById('artImg');
+  if (artImg) artImg.classList.add('revealed');
+
+  renderScoreDots();
+
+  setTimeout(() => {
+    currentRound++;
+    if (currentRound < ROUNDS_PER_GAME) {
+      renderRound();
+    } else {
+      endGame();
+    }
+  }, 1800);
+}
+
+// ─── End Game ───────────────────────────────────────────────────
+function endGame() {
+  stopAudio();
+  gameActive = false;
+
+  stats.gamesPlayed++;
+  stats.totalCorrect += score;
+  stats.totalRounds += ROUNDS_PER_GAME;
+  stats.lastPlayed = new Date().toISOString().slice(0, 10);
+
+  const won = score >= 7;
+  if (won) {
+    stats.gamesWon++;
+    stats.currentStreak++;
+    if (stats.currentStreak > stats.maxStreak) stats.maxStreak = stats.currentStreak;
+  } else {
+    stats.currentStreak = 0;
+  }
+
+  // Update best time (only for won games, lower is better)
+  const isNewBest = won && (stats.bestTimeMs === null || totalGameMs < stats.bestTimeMs);
+  if (isNewBest) stats.bestTimeMs = totalGameMs;
+
+  saveStats();
+  updateStatsDisplay();
+
+  let title, titleClass;
+  if (score >= 9) { title = 'Incredibile!'; titleClass = 'great'; }
+  else if (score >= 7) { title = 'Ottimo!'; titleClass = 'great'; }
+  else if (score >= 5) { title = 'Non male!'; titleClass = 'ok'; }
+  else { title = 'Puoi fare di meglio!'; titleClass = 'bad'; }
+
+  const avgMs = Math.round(totalGameMs / ROUNDS_PER_GAME);
+  const timeStr = formatTime(totalGameMs);
+  const avgStr = formatTime(avgMs);
+  const bestStr = stats.bestTimeMs !== null ? formatTime(stats.bestTimeMs) : '-';
+
+  gameArea.innerHTML = `
+    <div class="score-dots" id="scoreDots"></div>
+    <div class="result-container">
+      <div class="result-title ${titleClass}">${title}</div>
+      <div class="result-score">${score}/${ROUNDS_PER_GAME}</div>
+      <div class="result-detail">
+        Tempo totale: <strong>${timeStr}</strong> · Media: <strong>${avgStr}</strong>/round<br>
+        ${isNewBest ? '<span style="color:var(--success);font-weight:700;">Nuovo record!</span><br>' : ''}
+        Record: <strong>${bestStr}</strong><br>
+        ${won ? `Streak: ${stats.currentStreak}` : 'La streak si azzera sotto 7 risposte corrette'}
+      </div>
+      <button class="btn btn-primary" id="btnPlayAgain">Gioca ancora</button>
+    </div>
+  `;
+
+  renderScoreDots();
+  document.getElementById('btnPlayAgain').onclick = resetToMenu;
+}
+
+// ─── Reset to Menu ──────────────────────────────────────────────
+function resetToMenu() {
+  stopAudio();
+  gameActive = false;
+  gameArea.innerHTML = '';
+  startToolbar.style.display = '';
+  btnStart.disabled = false;
+  btnStart.textContent = 'Nuova partita';
+  genreSelector.parentElement.style.display = '';
+  instructionsEl.style.display = '';
+  updateStatsDisplay();
+}
+
+// ─── Utility ────────────────────────────────────────────────────
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function formatTime(ms) {
+  const totalSec = ms / 1000;
+  if (totalSec < 60) return totalSec.toFixed(1) + 's';
+  const min = Math.floor(totalSec / 60);
+  const sec = (totalSec % 60).toFixed(1);
+  return `${min}m ${sec}s`;
+}
+
+// ─── Event Handlers ─────────────────────────────────────────────
+btnStart.addEventListener('click', startGame);
+document.getElementById('btnStats').addEventListener('click', showStatsModal);
+
+// ─── Init ───────────────────────────────────────────────────────
+renderGenres();
+updateStatsDisplay();
+</script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
+</body>
+</html>

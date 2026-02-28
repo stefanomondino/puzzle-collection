@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#6C5CE7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Puzzle">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Confini - Puzzle Game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+  :root {
+    --bg: #faf8f5;
+    --card: #ffffff;
+    --primary: #6C5CE7;
+    --primary-light: #e8e4fd;
+    --text: #2d2d2d;
+    --text-muted: #777777;
+    --success: #00b894;
+    --error: #d63031;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  header {
+    width: 100%;
+    max-width: 500px;
+    padding: 16px 20px 8px;
+    text-align: center;
+    position: relative;
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--primary);
+    text-transform: uppercase;
+  }
+
+  header p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 20px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn:active { transform: scale(0.95); }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #5a4bd6; }
+
+  .stats-line {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 0 20px 8px;
+  }
+
+  .game-area {
+    width: 100%;
+    max-width: 500px;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* --- Mode selector --- */
+  .mode-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 4px 0;
+  }
+
+  .mode-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 2px solid #e0e0e0;
+    background: var(--card);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .mode-chip:active { transform: scale(0.95); }
+  .mode-chip.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+
+  /* --- Question card --- */
+  .question-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .question-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .question-visual {
+    width: 200px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    background: var(--primary-light);
+    overflow: hidden;
+  }
+
+  .question-visual .flag-display {
+    font-size: 120px;
+    line-height: 1;
+  }
+
+  .question-visual svg {
+    width: 180px;
+    height: 180px;
+  }
+
+  .timer-bar {
+    width: 100%;
+    height: 6px;
+    background: #e8e8e8;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .timer-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 3px;
+    width: 100%;
+    transition: width 0.1s linear;
+  }
+
+  .timer-fill.warning { background: #f39c12; }
+  .timer-fill.danger { background: var(--error); }
+
+  .timer-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* --- Options --- */
+  .options {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .option-btn {
+    width: 100%;
+    padding: 14px 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 14px;
+    background: var(--card);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    line-height: 1.3;
+  }
+
+  .option-btn:active { transform: scale(0.98); }
+  .option-btn:hover { border-color: var(--primary); background: var(--primary-light); }
+
+  .option-btn.correct { border-color: var(--success); background: #e8f5e9; color: #2e7d32; }
+  .option-btn.wrong { border-color: var(--error); background: #fdecea; color: #c62828; }
+  .option-btn.dimmed { opacity: 0.4; pointer-events: none; }
+
+  /* --- Score dots --- */
+  .score-dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 4px 0;
+  }
+
+  .score-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    transition: background 0.3s, transform 0.3s;
+  }
+
+  .score-dot.current { transform: scale(1.3); border: 2px solid var(--primary); background: #fff; }
+  .score-dot.correct { background: var(--success); }
+  .score-dot.wrong { background: var(--error); }
+
+  /* --- Loading / Error --- */
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 16px;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e8e8e8;
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* --- Result --- */
+  .result-container {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    width: 100%;
+    text-align: center;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .result-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .result-title.great { color: var(--success); }
+  .result-title.ok { color: #f39c12; }
+  .result-title.bad { color: var(--error); }
+
+  .result-score { font-size: 48px; font-weight: 800; color: var(--primary); margin: 8px 0; }
+
+  .result-detail { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.6; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .instructions {
+    max-width: 500px;
+    padding: 12px 20px 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* --- Stats Modal --- */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .overlay.visible { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px;
+    max-width: 340px;
+    width: 90%;
+    text-align: center;
+    animation: pop 0.3s ease;
+  }
+
+  @keyframes pop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .modal h2 { font-size: 22px; margin-bottom: 16px; color: var(--primary); }
+  .modal .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 15px;
+  }
+  .modal .stat-row:last-child { border-bottom: none; }
+  .modal .stat-label { color: var(--text-muted); }
+  .modal .stat-value { font-weight: 700; color: var(--text); }
+
+  /* --- Answer feedback --- */
+  .answer-info {
+    font-size: 14px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 4px;
+    font-weight: 600;
+    animation: fadeIn 0.3s ease;
+  }
+  .answer-info.correct-info { color: var(--success); }
+  .answer-info.wrong-info { color: var(--error); }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" style="position:absolute;left:16px;top:16px;color:var(--primary);text-decoration:none;font-size:18px;font-weight:600;">&larr; Menu</a>
+  <button id="btnStats" style="position:absolute;right:16px;top:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--primary);">&#x1F3C6;</button>
+  <h1>Confini</h1>
+  <p>Riconosci stati e bandiere</p>
+</header>
+
+<div class="toolbar">
+  <div class="mode-selector" id="modeSelector"></div>
+</div>
+
+<div class="toolbar" id="startToolbar">
+  <button class="btn btn-primary" id="btnStart">Nuova partita</button>
+</div>
+
+<p class="stats-line" id="statsLine"></p>
+
+<div class="game-area" id="gameArea"></div>
+
+<p class="instructions" id="instructions">
+  Riconosci lo stato dalla sua <strong>sagoma</strong> o dalla <strong>bandiera</strong>.<br>
+  <strong>10 round</strong> per partita. Vince chi risponde pi&ugrave; velocemente!
+</p>
+
+<!-- Stats Modal -->
+<div class="overlay" id="statsOverlay">
+  <div class="modal">
+    <h2>Statistiche</h2>
+    <div id="statsContent"></div>
+    <button class="btn btn-primary" style="margin-top:16px;" onclick="document.getElementById('statsOverlay').classList.remove('visible')">Chiudi</button>
+  </div>
+</div>
+
+<script>
+// ─── Seeded PRNG (Mulberry32) ───────────────────────────────────
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function shuffleArray(arr, rng) {
+  const fn = rng || Math.random;
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(fn() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ─── Country Database ───────────────────────────────────────────
+// Each country: { name (Italian), flag (emoji), path (simplified SVG), viewBox }
+const COUNTRIES = [
+  { name: 'Italia', flag: '\u{1F1EE}\u{1F1F9}', path: 'M52,5 L58,12 L62,25 L55,35 L60,48 L58,60 L50,72 L48,85 L42,90 L38,95 L35,88 L40,78 L38,65 L42,55 L35,45 L38,35 L45,30 L48,18 L45,10 Z M32,82 L28,88 L22,90 L20,85 L25,80 Z M58,68 L65,72 L68,78 L62,80 L58,75 Z', viewBox: '15 0 60 100' },
+  { name: 'Francia', flag: '\u{1F1EB}\u{1F1F7}', path: 'M25,10 L45,8 L60,10 L70,18 L75,30 L78,50 L72,65 L60,75 L45,78 L30,72 L20,60 L18,45 L20,30 Z', viewBox: '10 0 75 85' },
+  { name: 'Germania', flag: '\u{1F1E9}\u{1F1EA}', path: 'M30,8 L50,5 L65,10 L70,20 L72,35 L75,50 L70,65 L60,75 L45,78 L30,75 L22,65 L20,50 L22,35 L25,20 Z', viewBox: '15 0 65 85' },
+  { name: 'Spagna', flag: '\u{1F1EA}\u{1F1F8}', path: 'M15,25 L35,15 L55,12 L72,18 L80,28 L82,42 L78,55 L70,62 L55,65 L40,68 L25,62 L15,50 L12,38 Z', viewBox: '8 8 80 65' },
+  { name: 'Regno Unito', flag: '\u{1F1EC}\u{1F1E7}', path: 'M35,8 L45,5 L55,10 L58,22 L55,35 L60,42 L55,55 L48,62 L40,58 L35,65 L30,55 L25,45 L28,35 L25,25 L30,15 Z M18,30 L25,28 L22,35 L15,35 Z', viewBox: '10 0 55 70' },
+  { name: 'Portogallo', flag: '\u{1F1F5}\u{1F1F9}', path: 'M30,5 L45,8 L50,20 L48,35 L52,50 L48,65 L42,78 L35,85 L28,80 L25,65 L28,50 L25,35 L28,20 Z', viewBox: '20 0 38 90' },
+  { name: 'Grecia', flag: '\u{1F1EC}\u{1F1F7}', path: 'M20,15 L40,10 L60,12 L70,20 L65,32 L55,35 L65,45 L60,55 L48,58 L50,68 L42,72 L35,65 L30,55 L25,45 L18,35 L20,25 Z', viewBox: '12 5 65 72' },
+  { name: 'Brasile', flag: '\u{1F1E7}\u{1F1F7}', path: 'M30,5 L50,3 L70,8 L82,15 L88,28 L90,42 L85,58 L78,70 L65,78 L50,82 L35,80 L22,72 L15,60 L10,45 L12,30 L18,18 Z', viewBox: '5 0 90 88' },
+  { name: 'Stati Uniti', flag: '\u{1F1FA}\u{1F1F8}', path: 'M5,25 L20,22 L35,20 L50,18 L65,20 L80,22 L92,25 L95,35 L92,48 L85,55 L70,58 L55,60 L40,58 L25,55 L12,48 L5,38 Z', viewBox: '0 12 100 55' },
+  { name: 'Canada', flag: '\u{1F1E8}\u{1F1E6}', path: 'M5,30 L20,25 L35,22 L50,20 L65,22 L80,25 L95,30 L92,45 L85,55 L70,60 L55,62 L40,60 L25,55 L12,45 L5,38 Z', viewBox: '0 15 100 52' },
+  { name: 'Australia', flag: '\u{1F1E6}\u{1F1FA}', path: 'M15,15 L35,10 L55,8 L75,12 L88,22 L92,38 L85,55 L72,65 L55,70 L38,68 L22,60 L12,45 L10,30 Z', viewBox: '5 3 92 72' },
+  { name: 'Giappone', flag: '\u{1F1EF}\u{1F1F5}', path: 'M40,5 L55,8 L60,18 L58,30 L62,42 L55,55 L50,68 L42,78 L35,82 L30,75 L32,62 L28,50 L32,38 L28,25 L35,15 Z M65,20 L72,18 L75,25 L70,30 L65,25 Z', viewBox: '22 0 58 88' },
+  { name: 'Cina', flag: '\u{1F1E8}\u{1F1F3}', path: 'M10,20 L30,12 L55,8 L78,12 L92,22 L95,38 L90,52 L78,62 L62,68 L45,70 L28,65 L15,55 L8,42 L8,30 Z', viewBox: '3 3 97 75' },
+  { name: 'India', flag: '\u{1F1EE}\u{1F1F3}', path: 'M30,5 L50,3 L65,8 L72,18 L75,32 L78,48 L72,62 L62,75 L50,85 L40,90 L32,82 L28,68 L25,52 L22,38 L25,22 Z', viewBox: '18 0 65 95' },
+  { name: 'Russia', flag: '\u{1F1F7}\u{1F1FA}', path: 'M2,25 L18,18 L38,15 L58,12 L78,15 L95,20 L98,32 L95,42 L85,48 L70,50 L55,52 L38,50 L22,48 L10,42 L2,35 Z', viewBox: '0 8 100 48' },
+  { name: 'Messico', flag: '\u{1F1F2}\u{1F1FD}', path: 'M10,20 L25,10 L45,8 L60,12 L72,22 L78,35 L75,50 L65,62 L50,68 L35,65 L22,55 L12,42 L8,30 Z', viewBox: '3 3 80 70' },
+  { name: 'Argentina', flag: '\u{1F1E6}\u{1F1F7}', path: 'M30,3 L48,5 L55,12 L58,25 L55,40 L58,55 L52,70 L48,82 L40,90 L32,95 L28,85 L30,70 L25,55 L28,40 L25,25 L28,12 Z', viewBox: '20 0 45 100' },
+  { name: 'Egitto', flag: '\u{1F1EA}\u{1F1EC}', path: 'M10,15 L35,10 L60,8 L85,12 L90,25 L88,40 L82,55 L65,62 L45,65 L25,60 L12,48 L8,32 Z', viewBox: '3 3 92 67' },
+  { name: 'Sudafrica', flag: '\u{1F1FF}\u{1F1E6}', path: 'M15,12 L40,8 L65,10 L82,18 L88,32 L85,48 L75,60 L58,68 L40,70 L25,65 L15,52 L10,38 L12,22 Z', viewBox: '5 3 88 72' },
+  { name: 'Turchia', flag: '\u{1F1F9}\u{1F1F7}', path: 'M5,25 L25,18 L48,15 L70,18 L88,22 L95,32 L90,45 L75,52 L55,55 L35,52 L18,48 L8,40 L5,32 Z', viewBox: '0 10 100 50' },
+  { name: 'Svezia', flag: '\u{1F1F8}\u{1F1EA}', path: 'M35,3 L48,5 L55,12 L52,28 L58,40 L52,55 L48,70 L42,82 L35,88 L30,80 L32,65 L28,50 L32,38 L28,22 L32,10 Z', viewBox: '22 0 42 92' },
+  { name: 'Norvegia', flag: '\u{1F1F3}\u{1F1F4}', path: 'M32,2 L42,5 L48,15 L45,30 L50,42 L45,58 L40,72 L35,85 L30,92 L25,82 L28,68 L24,52 L28,38 L24,25 L28,12 Z', viewBox: '18 0 38 96' },
+  { name: 'Polonia', flag: '\u{1F1F5}\u{1F1F1}', path: 'M15,15 L38,10 L62,12 L80,18 L85,30 L82,45 L72,55 L55,60 L35,58 L20,50 L12,38 L12,25 Z', viewBox: '8 5 82 60' },
+  { name: 'Svizzera', flag: '\u{1F1E8}\u{1F1ED}', path: 'M20,20 L40,12 L62,15 L75,25 L78,40 L72,55 L58,62 L40,65 L25,58 L15,45 L15,32 Z', viewBox: '10 8 73 62' },
+  { name: 'Austria', flag: '\u{1F1E6}\u{1F1F9}', path: 'M10,22 L30,15 L55,12 L78,16 L90,25 L88,38 L78,48 L58,52 L35,50 L18,45 L8,35 Z', viewBox: '3 8 92 50' },
+  { name: 'Paesi Bassi', flag: '\u{1F1F3}\u{1F1F1}', path: 'M15,18 L38,12 L60,15 L75,22 L78,35 L72,48 L55,55 L35,52 L20,45 L12,32 Z', viewBox: '8 8 75 52' },
+  { name: 'Belgio', flag: '\u{1F1E7}\u{1F1EA}', path: 'M20,12 L42,8 L60,14 L68,25 L65,40 L55,52 L38,55 L22,48 L15,35 L16,22 Z', viewBox: '10 3 63 57' },
+  { name: 'Irlanda', flag: '\u{1F1EE}\u{1F1EA}', path: 'M25,10 L42,8 L55,15 L58,28 L55,42 L48,55 L38,62 L28,58 L20,45 L18,30 L20,18 Z', viewBox: '13 3 50 65' },
+  { name: 'Croazia', flag: '\u{1F1ED}\u{1F1F7}', path: 'M10,18 L28,10 L48,12 L62,18 L68,28 L72,42 L65,52 L50,55 L35,58 L22,48 L15,38 L8,28 Z', viewBox: '3 5 74 58' },
+  { name: 'Romania', flag: '\u{1F1F7}\u{1F1F4}', path: 'M12,15 L35,10 L58,12 L78,18 L82,30 L80,45 L68,55 L48,58 L28,55 L15,45 L10,32 Z', viewBox: '5 5 82 58' },
+  { name: 'Corea del Sud', flag: '\u{1F1F0}\u{1F1F7}', path: 'M25,12 L45,5 L62,10 L72,22 L75,38 L68,52 L55,60 L38,62 L25,55 L18,42 L18,28 Z', viewBox: '12 0 68 67' },
+  { name: 'Thailandia', flag: '\u{1F1F9}\u{1F1ED}', path: 'M30,5 L48,3 L60,10 L65,22 L68,38 L72,50 L65,65 L55,75 L42,78 L32,72 L25,58 L22,42 L25,28 L28,15 Z', viewBox: '18 0 58 82' },
+  { name: 'Colombia', flag: '\u{1F1E8}\u{1F1F4}', path: 'M12,18 L30,8 L52,5 L70,12 L80,25 L82,40 L75,55 L60,65 L42,68 L25,62 L15,48 L10,32 Z', viewBox: '5 0 82 72' },
+  { name: 'Per\u00f9', flag: '\u{1F1F5}\u{1F1EA}', path: 'M15,10 L38,5 L58,8 L72,18 L78,32 L80,48 L72,62 L58,72 L40,75 L25,68 L15,55 L10,38 L12,22 Z', viewBox: '5 0 80 80' },
+  { name: 'Cile', flag: '\u{1F1E8}\u{1F1F1}', path: 'M38,2 L48,5 L52,15 L50,28 L48,42 L50,55 L48,68 L45,80 L42,90 L38,98 L34,90 L36,78 L34,65 L36,52 L34,38 L36,25 L34,12 Z', viewBox: '28 0 30 100' },
+  { name: 'Nigeria', flag: '\u{1F1F3}\u{1F1EC}', path: 'M15,12 L38,8 L62,10 L80,18 L85,32 L82,48 L72,60 L52,65 L32,62 L18,52 L10,38 L12,22 Z', viewBox: '5 3 85 67' },
+  { name: 'Kenya', flag: '\u{1F1F0}\u{1F1EA}', path: 'M22,8 L45,5 L62,10 L72,22 L75,38 L72,55 L62,68 L45,75 L30,70 L20,58 L15,42 L18,25 Z', viewBox: '10 0 70 80' },
+  { name: 'Marocco', flag: '\u{1F1F2}\u{1F1E6}', path: 'M10,18 L32,10 L58,12 L80,18 L85,32 L82,48 L70,58 L50,62 L30,58 L15,48 L8,35 Z', viewBox: '3 5 87 62' },
+  { name: 'Vietnam', flag: '\u{1F1FB}\u{1F1F3}', path: 'M35,3 L48,5 L55,15 L52,28 L48,42 L52,55 L58,65 L55,78 L48,88 L40,92 L35,82 L38,70 L32,58 L35,45 L30,32 L35,18 Z', viewBox: '25 0 38 96' },
+  { name: 'Filippine', flag: '\u{1F1F5}\u{1F1ED}', path: 'M20,10 L38,5 L55,8 L65,18 L68,32 L72,45 L65,58 L52,65 L38,68 L25,60 L18,48 L15,32 L18,20 Z', viewBox: '10 0 65 73' },
+  { name: 'Indonesia', flag: '\u{1F1EE}\u{1F1E9}', path: 'M5,28 L22,22 L42,18 L62,20 L80,24 L95,30 L92,42 L78,48 L60,50 L40,48 L22,45 L8,40 Z', viewBox: '0 14 100 42' },
+  { name: 'Nuova Zelanda', flag: '\u{1F1F3}\u{1F1FF}', path: 'M30,8 L45,5 L55,12 L58,25 L55,40 L60,52 L55,65 L48,75 L38,80 L30,72 L25,58 L28,45 L22,32 L25,18 Z M62,40 L70,38 L72,45 L68,50 L62,48 Z', viewBox: '16 0 62 85' },
+  { name: 'Cuba', flag: '\u{1F1E8}\u{1F1FA}', path: 'M5,30 L20,22 L40,18 L60,20 L78,25 L92,30 L95,38 L85,45 L65,48 L45,46 L25,42 L10,38 Z', viewBox: '0 14 100 40' },
+  { name: 'Islanda', flag: '\u{1F1EE}\u{1F1F8}', path: 'M10,22 L30,12 L55,10 L78,15 L90,25 L88,38 L75,48 L55,52 L35,50 L18,42 L8,32 Z', viewBox: '3 5 92 52' },
+  { name: 'Finlandia', flag: '\u{1F1EB}\u{1F1EE}', path: 'M32,2 L45,5 L52,15 L48,30 L52,42 L48,58 L45,72 L40,85 L35,90 L30,82 L32,68 L28,55 L32,42 L28,28 L30,15 Z', viewBox: '22 0 35 94' },
+  { name: 'Danimarca', flag: '\u{1F1E9}\u{1F1F0}', path: 'M20,18 L42,10 L65,12 L78,20 L80,35 L72,48 L55,55 L35,52 L22,45 L15,32 Z M30,55 L38,52 L42,58 L35,62 L28,60 Z', viewBox: '10 5 75 62' },
+  { name: 'Ucraina', flag: '\u{1F1FA}\u{1F1E6}', path: 'M8,18 L28,10 L52,8 L75,12 L90,20 L92,32 L88,45 L75,52 L55,55 L35,52 L18,45 L8,35 Z', viewBox: '3 3 94 57' },
+  { name: 'Arabia Saudita', flag: '\u{1F1F8}\u{1F1E6}', path: 'M10,15 L30,8 L55,5 L78,10 L90,22 L92,38 L85,52 L70,62 L48,68 L28,62 L15,50 L8,35 Z', viewBox: '3 0 94 72' },
+  { name: 'Iran', flag: '\u{1F1EE}\u{1F1F7}', path: 'M12,18 L32,8 L55,5 L75,10 L88,22 L90,38 L85,52 L72,62 L52,68 L32,62 L18,50 L10,35 Z', viewBox: '5 0 90 72' },
+  { name: 'Pakistan', flag: '\u{1F1F5}\u{1F1F0}', path: 'M10,15 L30,8 L55,5 L75,10 L85,22 L88,38 L82,52 L65,62 L45,65 L25,58 L12,45 L8,30 Z', viewBox: '3 0 90 70' },
+];
+
+// ─── Game Modes ─────────────────────────────────────────────────
+const MODES = {
+  'Misto': 'mixed',
+  'Sagome': 'shape',
+  'Bandiere': 'flag'
+};
+const MODE_KEYS = Object.keys(MODES);
+let selectedMode = 'Misto';
+
+// ─── Persistence (localStorage) ─────────────────────────────────
+const STORAGE_KEY = 'confini_stats';
+
+function loadStats() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (data && typeof data.gamesPlayed === 'number') return data;
+  } catch(e) {}
+  return { gamesPlayed: 0, gamesWon: 0, currentStreak: 0, maxStreak: 0, lastPlayed: null, totalCorrect: 0, totalRounds: 0, bestTimeMs: null };
+}
+
+function saveStats() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+}
+
+let stats = loadStats();
+
+// ─── Game State ─────────────────────────────────────────────────
+const ROUNDS_PER_GAME = 10;
+let rounds = [];
+let currentRound = 0;
+let score = 0;
+let roundResults = [];
+let gameActive = false;
+let roundStartMs = 0;
+let roundTimesMs = [];
+let totalGameMs = 0;
+let timerInterval = null;
+
+// ─── DOM refs ───────────────────────────────────────────────────
+const gameArea = document.getElementById('gameArea');
+const statsLine = document.getElementById('statsLine');
+const modeSelector = document.getElementById('modeSelector');
+const btnStart = document.getElementById('btnStart');
+const startToolbar = document.getElementById('startToolbar');
+const instructionsEl = document.getElementById('instructions');
+
+// ─── Mode Selector ──────────────────────────────────────────────
+function renderModes() {
+  modeSelector.innerHTML = '';
+  MODE_KEYS.forEach(m => {
+    const chip = document.createElement('button');
+    chip.className = 'mode-chip' + (m === selectedMode ? ' active' : '');
+    chip.textContent = m;
+    chip.onclick = () => {
+      selectedMode = m;
+      renderModes();
+    };
+    modeSelector.appendChild(chip);
+  });
+}
+
+// ─── Stats Display ──────────────────────────────────────────────
+function updateStatsDisplay() {
+  const avg = stats.totalRounds > 0 ? Math.round(stats.totalCorrect / stats.totalRounds * 100) : 0;
+  statsLine.textContent = `Partite: ${stats.gamesPlayed} \u00b7 Precisione: ${avg}% \u00b7 Streak: ${stats.currentStreak}`;
+}
+
+function showStatsModal() {
+  const avg = stats.totalRounds > 0 ? Math.round(stats.totalCorrect / stats.totalRounds * 100) : 0;
+  document.getElementById('statsContent').innerHTML = `
+    <div class="stat-row"><span class="stat-label">Partite giocate</span><span class="stat-value">${stats.gamesPlayed}</span></div>
+    <div class="stat-row"><span class="stat-label">Partite vinte (\u22657/10)</span><span class="stat-value">${stats.gamesWon}</span></div>
+    <div class="stat-row"><span class="stat-label">Risposte corrette</span><span class="stat-value">${stats.totalCorrect}/${stats.totalRounds}</span></div>
+    <div class="stat-row"><span class="stat-label">Precisione</span><span class="stat-value">${avg}%</span></div>
+    <div class="stat-row"><span class="stat-label">Streak attuale</span><span class="stat-value">${stats.currentStreak}</span></div>
+    <div class="stat-row"><span class="stat-label">Miglior streak</span><span class="stat-value">${stats.maxStreak}</span></div>
+    <div class="stat-row"><span class="stat-label">Miglior tempo</span><span class="stat-value">${stats.bestTimeMs !== null ? formatTime(stats.bestTimeMs) : '-'}</span></div>
+  `;
+  document.getElementById('statsOverlay').classList.add('visible');
+}
+
+// ─── Generate SVG silhouette ────────────────────────────────────
+function renderSilhouette(country) {
+  return `<svg viewBox="${country.viewBox}" xmlns="http://www.w3.org/2000/svg">
+    <path d="${country.path}" fill="#6C5CE7" stroke="#5a4bd6" stroke-width="1.5" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+// ─── Build rounds ───────────────────────────────────────────────
+function buildRounds() {
+  const seed = Date.now();
+  const rng = mulberry32(seed);
+
+  const pool = [...COUNTRIES];
+  shuffleArray(pool, rng);
+
+  const roundsData = [];
+
+  for (let i = 0; i < ROUNDS_PER_GAME; i++) {
+    const correct = pool[i];
+
+    // Pick round type
+    let type;
+    const mode = MODES[selectedMode];
+    if (mode === 'mixed') {
+      type = rng() > 0.5 ? 'flag' : 'shape';
+    } else {
+      type = mode;
+    }
+
+    // Pick 3 distractors from remaining pool
+    const distractors = [];
+    const available = pool.filter((c, idx) => idx !== i);
+    shuffleArray(available, rng);
+
+    // Try to pick countries from same "region" for harder distractors
+    for (const c of available) {
+      if (distractors.length >= 3) break;
+      if (c.name !== correct.name) {
+        distractors.push(c);
+      }
+    }
+
+    const options = shuffleArray([
+      { name: correct.name, isCorrect: true },
+      ...distractors.map(d => ({ name: d.name, isCorrect: false }))
+    ], rng);
+
+    roundsData.push({
+      correct,
+      type,
+      options
+    });
+  }
+
+  return roundsData;
+}
+
+// ─── Start Game ─────────────────────────────────────────────────
+function startGame() {
+  gameActive = false;
+  currentRound = 0;
+  score = 0;
+  roundResults = [];
+  roundTimesMs = [];
+  totalGameMs = 0;
+  instructionsEl.style.display = 'none';
+
+  rounds = buildRounds();
+  gameActive = true;
+  startToolbar.style.display = 'none';
+  modeSelector.parentElement.style.display = 'none';
+  renderRound();
+}
+
+// ─── Render Round ───────────────────────────────────────────────
+function renderRound() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+
+  const round = rounds[currentRound];
+  const typeLabel = round.type === 'flag' ? 'Che stato ha questa bandiera?' : 'Che stato ha questa forma?';
+
+  let visualContent;
+  if (round.type === 'flag') {
+    visualContent = `<span class="flag-display">${round.correct.flag}</span>`;
+  } else {
+    visualContent = renderSilhouette(round.correct);
+  }
+
+  gameArea.innerHTML = `
+    <div class="score-dots" id="scoreDots"></div>
+    <div class="question-card">
+      <div class="question-label">Round ${currentRound + 1} di ${ROUNDS_PER_GAME}</div>
+      <div class="question-visual">${visualContent}</div>
+      <div class="question-label">${typeLabel}</div>
+      <div style="display:flex;align-items:center;gap:8px;width:100%;">
+        <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+        <span class="timer-text" id="timerText">0.0s</span>
+      </div>
+    </div>
+    <div class="options" id="optionsContainer"></div>
+  `;
+
+  renderScoreDots();
+  renderOptions(round);
+
+  roundStartMs = performance.now();
+
+  // Start visual timer
+  timerInterval = setInterval(() => {
+    const elapsed = performance.now() - roundStartMs;
+    const seconds = elapsed / 1000;
+    const timerText = document.getElementById('timerText');
+    const timerFill = document.getElementById('timerFill');
+    if (timerText) timerText.textContent = seconds.toFixed(1) + 's';
+    if (timerFill) {
+      // Timer bar shrinks over 15 seconds
+      const pct = Math.max(0, 100 - (seconds / 15) * 100);
+      timerFill.style.width = pct + '%';
+      timerFill.className = 'timer-fill' + (seconds > 10 ? ' danger' : seconds > 6 ? ' warning' : '');
+    }
+  }, 100);
+}
+
+function renderScoreDots() {
+  const container = document.getElementById('scoreDots');
+  if (!container) return;
+  container.innerHTML = '';
+  for (let i = 0; i < ROUNDS_PER_GAME; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'score-dot';
+    if (i < roundResults.length) {
+      dot.classList.add(roundResults[i] ? 'correct' : 'wrong');
+    } else if (i === currentRound) {
+      dot.classList.add('current');
+    }
+    container.appendChild(dot);
+  }
+}
+
+function renderOptions(round) {
+  const container = document.getElementById('optionsContainer');
+  container.innerHTML = '';
+  round.options.forEach((opt, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt.name;
+    btn.onclick = () => handleAnswer(idx, opt.isCorrect, round);
+    container.appendChild(btn);
+  });
+}
+
+// ─── Handle Answer ──────────────────────────────────────────────
+function handleAnswer(selectedIdx, isCorrect, round) {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+
+  const elapsed = Math.round(performance.now() - roundStartMs);
+  roundTimesMs.push(elapsed);
+  totalGameMs += elapsed;
+
+  const buttons = document.querySelectorAll('.option-btn');
+  buttons.forEach((btn, i) => {
+    btn.style.pointerEvents = 'none';
+    if (round.options[i].isCorrect) {
+      btn.classList.add('correct');
+    } else if (i === selectedIdx && !isCorrect) {
+      btn.classList.add('wrong');
+    } else {
+      btn.classList.add('dimmed');
+    }
+  });
+
+  if (isCorrect) score++;
+  roundResults.push(isCorrect);
+
+  // Show answer feedback
+  const container = document.getElementById('optionsContainer');
+  const info = document.createElement('div');
+  info.className = 'answer-info ' + (isCorrect ? 'correct-info' : 'wrong-info');
+  if (isCorrect) {
+    info.textContent = `Corretto! ${formatTime(elapsed)}`;
+  } else {
+    info.textContent = `Sbagliato! Era ${round.correct.name}`;
+  }
+  container.appendChild(info);
+
+  renderScoreDots();
+
+  setTimeout(() => {
+    currentRound++;
+    if (currentRound < ROUNDS_PER_GAME) {
+      renderRound();
+    } else {
+      endGame();
+    }
+  }, 1500);
+}
+
+// ─── End Game ───────────────────────────────────────────────────
+function endGame() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  gameActive = false;
+
+  stats.gamesPlayed++;
+  stats.totalCorrect += score;
+  stats.totalRounds += ROUNDS_PER_GAME;
+  stats.lastPlayed = new Date().toISOString().slice(0, 10);
+
+  const won = score >= 7;
+  if (won) {
+    stats.gamesWon++;
+    stats.currentStreak++;
+    if (stats.currentStreak > stats.maxStreak) stats.maxStreak = stats.currentStreak;
+  } else {
+    stats.currentStreak = 0;
+  }
+
+  const isNewBest = won && (stats.bestTimeMs === null || totalGameMs < stats.bestTimeMs);
+  if (isNewBest) stats.bestTimeMs = totalGameMs;
+
+  saveStats();
+  updateStatsDisplay();
+
+  let title, titleClass;
+  if (score >= 9) { title = 'Incredibile!'; titleClass = 'great'; }
+  else if (score >= 7) { title = 'Ottimo!'; titleClass = 'great'; }
+  else if (score >= 5) { title = 'Non male!'; titleClass = 'ok'; }
+  else { title = 'Puoi fare di meglio!'; titleClass = 'bad'; }
+
+  const avgMs = Math.round(totalGameMs / ROUNDS_PER_GAME);
+  const timeStr = formatTime(totalGameMs);
+  const avgStr = formatTime(avgMs);
+  const bestStr = stats.bestTimeMs !== null ? formatTime(stats.bestTimeMs) : '-';
+
+  gameArea.innerHTML = `
+    <div class="score-dots" id="scoreDots"></div>
+    <div class="result-container">
+      <div class="result-title ${titleClass}">${title}</div>
+      <div class="result-score">${score}/${ROUNDS_PER_GAME}</div>
+      <div class="result-detail">
+        Tempo totale: <strong>${timeStr}</strong> \u00b7 Media: <strong>${avgStr}</strong>/round<br>
+        ${isNewBest ? '<span style="color:var(--success);font-weight:700;">Nuovo record!</span><br>' : ''}
+        Record: <strong>${bestStr}</strong><br>
+        ${won ? `Streak: ${stats.currentStreak}` : 'La streak si azzera sotto 7 risposte corrette'}
+      </div>
+      <button class="btn btn-primary" id="btnPlayAgain">Gioca ancora</button>
+    </div>
+  `;
+
+  renderScoreDots();
+  document.getElementById('btnPlayAgain').onclick = resetToMenu;
+}
+
+// ─── Reset to Menu ──────────────────────────────────────────────
+function resetToMenu() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  gameActive = false;
+  gameArea.innerHTML = '';
+  startToolbar.style.display = '';
+  btnStart.disabled = false;
+  btnStart.textContent = 'Nuova partita';
+  modeSelector.parentElement.style.display = '';
+  instructionsEl.style.display = '';
+  updateStatsDisplay();
+}
+
+// ─── Utility ────────────────────────────────────────────────────
+function formatTime(ms) {
+  const totalSec = ms / 1000;
+  if (totalSec < 60) return totalSec.toFixed(1) + 's';
+  const min = Math.floor(totalSec / 60);
+  const sec = (totalSec % 60).toFixed(1);
+  return `${min}m ${sec}s`;
+}
+
+// ─── Event Handlers ─────────────────────────────────────────────
+btnStart.addEventListener('click', startGame);
+document.getElementById('btnStats').addEventListener('click', showStatsModal);
+
+// ─── Init ───────────────────────────────────────────────────────
+renderModes();
+updateStatsDisplay();
+</script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
+</body>
+</html>

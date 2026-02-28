@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#6C5CE7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Puzzle">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Scaletta - Puzzle Game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+  :root {
+    --bg: #faf8f5;
+    --card: #ffffff;
+    --primary: #6C5CE7;
+    --primary-light: #e8e4fd;
+    --text: #2d2d2d;
+    --text-muted: #777777;
+    --success: #00b894;
+    --error: #e74c3c;
+    --given: #f0edf9;
+    --active-row: #fffbe6;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  header {
+    width: 100%;
+    max-width: 500px;
+    padding: 16px 20px 8px;
+    text-align: center;
+    position: relative;
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--primary);
+    text-transform: uppercase;
+  }
+
+  header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+  .back-btn {
+    position: absolute;
+    left: 16px;
+    top: 18px;
+    text-decoration: none;
+    font-size: 22px;
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  .stats-btn {
+    position: absolute;
+    right: 16px;
+    top: 18px;
+    font-size: 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--primary);
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 20px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--card);
+    color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+
+  .btn:active { transform: scale(0.95); }
+
+  .timer {
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    min-width: 70px;
+    text-align: center;
+  }
+
+  .diff-bar {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 4px 20px 8px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .diff-btn {
+    border: 2px solid var(--primary);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    background: transparent;
+    color: var(--primary);
+    transition: all 0.15s;
+  }
+
+  .diff-btn.active {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  /* --- Ladder Board --- */
+  .board-container {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    width: 100%;
+    max-width: 380px;
+    margin: 8px auto;
+  }
+
+  .ladder {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .ladder-row {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    position: relative;
+  }
+
+  .ladder-row.given { opacity: 1; }
+  .ladder-row.active-row .cell:not(.given-cell) { background: var(--active-row); }
+
+  .row-indicator {
+    width: 24px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .row-indicator.done { color: var(--success); }
+  .row-indicator.current { color: var(--primary); }
+
+  .connector {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 12px;
+    padding-left: 28px;
+  }
+
+  .connector-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #ccc;
+  }
+
+  .connector-dot.valid { background: var(--success); }
+
+  .cell {
+    width: 48px;
+    height: 48px;
+    border: 2px solid #d0cdc8;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    background: #fff;
+  }
+
+  .cell.given-cell {
+    background: var(--given);
+    border-color: #c5bfdb;
+    color: var(--primary);
+  }
+
+  .cell.changed-pos {
+    border-color: var(--primary);
+    background: var(--primary-light);
+  }
+
+  .cell.editable {
+    cursor: pointer;
+    border-color: #bbb;
+  }
+
+  .cell.editable.selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(108,92,231,0.25);
+  }
+
+  .cell.correct {
+    border-color: var(--success);
+    background: #e6f9f3;
+    color: var(--success);
+  }
+
+  .cell.error {
+    border-color: var(--error);
+    background: #fdeaea;
+    animation: shake 0.3s;
+  }
+
+  @keyframes shake {
+    25% { transform: translateX(-4px); }
+    50% { transform: translateX(4px); }
+    75% { transform: translateX(-2px); }
+  }
+
+  /* --- Keyboard --- */
+  .keyboard {
+    width: 100%;
+    max-width: 500px;
+    padding: 8px 4px;
+    margin-top: auto;
+    padding-bottom: env(safe-area-inset-bottom, 8px);
+  }
+
+  .keyboard.hidden { display: none; }
+
+  .kb-row {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .kb-key {
+    min-width: 32px;
+    height: 46px;
+    border: none;
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+    transition: background 0.1s;
+    flex: 1;
+    max-width: 42px;
+  }
+
+  .kb-key:active { background: var(--primary-light); }
+
+  .kb-key.wide {
+    min-width: 56px;
+    max-width: 72px;
+    font-size: 14px;
+    flex: 1.5;
+  }
+
+  .kb-key.action {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .kb-key.action:active { background: #5a4bd1; }
+
+  /* --- Stats Modal --- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.show { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px 24px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    animation: pop 0.3s ease;
+  }
+
+  @keyframes pop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .modal h2 {
+    font-size: 24px;
+    color: var(--primary);
+    margin-bottom: 16px;
+  }
+
+  .modal p { color: var(--text-muted); margin-bottom: 12px; font-size: 15px; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .stat-item {
+    background: var(--primary-light);
+    border-radius: 12px;
+    padding: 12px 8px;
+  }
+
+  .stat-item .num {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  .stat-item .lbl {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .modal .btn {
+    margin-top: 16px;
+    background: var(--primary);
+    color: #fff;
+    padding: 12px 32px;
+    font-size: 16px;
+    border-radius: 24px;
+  }
+
+  p.stats {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 4px;
+  }
+
+  .instructions {
+    max-width: 460px;
+    padding: 16px 24px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    text-align: center;
+  }
+
+  @media (max-width: 380px) {
+    .cell { width: 40px; height: 40px; font-size: 18px; }
+    .kb-key { height: 40px; font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="back-btn">&larr;</a>
+  <h1>Scaletta</h1>
+  <p>Completa la scala di parole</p>
+  <button class="stats-btn" onclick="showStats()" title="Statistiche">&#x1F3C6;</button>
+</header>
+
+<div class="diff-bar">
+  <button class="diff-btn active" data-diff="4" onclick="setDiff(4)">4 lettere</button>
+  <button class="diff-btn" data-diff="5" onclick="setDiff(5)">5 lettere</button>
+</div>
+
+<div class="toolbar">
+  <button class="btn" onclick="hint()">&#128161; Aiuto</button>
+  <div class="timer" id="timer">00:00</div>
+  <button class="btn" onclick="newGame()">&#10227; Nuovo</button>
+</div>
+
+<div class="board-container">
+  <div class="ladder" id="ladder"></div>
+</div>
+
+<p class="stats" id="statsLine"></p>
+
+<div class="keyboard" id="keyboard"></div>
+
+<p class="instructions">
+  <strong>Scaletta</strong>: completa la scala di parole dal primo all'ultimo gradino.
+  Ogni parola differisce dalla precedente per <strong>una sola lettera</strong>.
+  Le parole evidenziate sono date; riempi le celle vuote.
+  Su mobile usa la tastiera in basso, su desktop quella fisica.
+</p>
+
+<!-- Stats Modal -->
+<div class="modal-overlay" id="statsModal">
+  <div class="modal">
+    <h2>Statistiche</h2>
+    <div class="stat-grid" id="statsGrid"></div>
+    <button class="btn" onclick="closeStats()">Chiudi</button>
+  </div>
+</div>
+
+<!-- Win Modal -->
+<div class="modal-overlay" id="winModal">
+  <div class="modal">
+    <h2 id="winTitle">Complimenti!</h2>
+    <p id="winMsg"></p>
+    <button class="btn" onclick="closeWin(); newGame();">Nuova Scaletta &rarr;</button>
+  </div>
+</div>
+
+<script>
+// --- Seeded PRNG (mulberry32) ---
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// --- Italian Word Lists ---
+const WORDS_4 = [
+  'acre','alba','albo','alma','alto','amen','anca','anno','arco','area','arma','arpa','arte','asse',
+  'baco','bara','base','bile','biro','boia','bora','buca','buio',
+  'cade','cala','cane','capo','cara','caro','casa','caso','cave','cena','cera','cero','cima',
+  'coda','cola','come','cone','cono','cora','core','coro','cosa','cova','cuce','cura','cure',
+  'dado','dare','data','dato','diga','dire','diva','divo','doge','dolo','dona','dose','dote',
+  'duca','duna','dura','dure','duro',
+  'fama','fare','faro','fase','fata','fate','fato','fico','fila','file','filo','fine','fino',
+  'foca','foga','fola','fora','foro','fuga','fune',
+  'gala','gara','gelo','giga','gira','giro','gita','gola','gore','gota','gora',
+  'idea',
+  'lago','lama','lana','lare','lato','lava','lega','lena','leva','lido','lima','lino',
+  'lira','lode','logo','loro','loto','luce','luna','lupa',
+  'mago','mala','male','mano','mare','mela','mena','meno','meta','mica','mina','mine',
+  'mira','mire','mise','mite','moda','modo','mola','mole','molo','more','moro','mota',
+  'moto','mulo','mura','muro','musa','muta','mute','muto',
+  'nano','naso','nave','neve','nido','noce','node','nodo','nome','nona','none','nono',
+  'nota','note','nova','nove','nuca','nuda','nudo',
+  'orca','orlo','orso','oste',
+  'pace','paga','pale','palo','pane','para','pare','pari','pece','pena','pene','pere',
+  'peso','pile','pino','pira','polo','pone','pope','poro','pose','pura','pure','puro',
+  'rada','rana','rare','raro','rate','remo','rene','resa','rete','rima','rime','riva',
+  'rive','roba','roma','rosa','rose','rota','rude','ruga','rupe',
+  'sala','sale','sana','sane','sano','scia','seco','sede','sega','seme','seno','sera',
+  'seta','sete','soda','sola','sole','solo','soma','sono','sora','suda',
+  'tale','tana','tara','tela','tema','tesa','tese','tino','tira','tire','tiro','toga',
+  'tomo','tono','topo','tore','toro','tuba','tufo','tuta',
+  'unto','urna',
+  'vale','vana','vane','vano','varo','vaso','vena','vera','vere','vero','vice','vile',
+  'vino','vira','viso','vita','vite','viva','vive','vivo','voce','voga','vola','volo','vota','voto',
+  'zara','zero','zeta','zona'
+];
+
+const WORDS_5 = [
+  'abete','acido','acuto','adagio','agile','aiuto','albero','allegro','alone','amaro',
+  'ballo','banco','barba','barca','basso','bello','bocca','bordo','bosco','bravo','brina','brodo','bruno','buono',
+  'calce','caldo','calmo','campo','canto','carta','cerco','cielo','cobra','cocco','collo','colmo','colpa',
+  'colpo','coppa','cordo','corna','corpo','corsa','corte','costa','crema','croce','crude','cuneo','curva',
+  'dardo','dolce','donna','dorso','drago',
+  'falco','fango','farsa','fauna','ferro','festa','fiaba','fiato','fieno','fiero','fisso','flora','fogna',
+  'folla','fondo','forma','forza','fosso','freno','frumo','fuoco','furbo','fusto',
+  'gamba','gatto','gemma','gente','gesto','gonna','grado','grana','grido','grosso','gusto',
+  'lampo','lardo','largo','legge','lembo','lento','letto','lieve','lince','lista','litro','lonza','lusso',
+  'madre','magro','manco','manto','marca','marzo','massa','mento','merce','mezzo','mille','mirto',
+  'molto','mondo','monte','morbo','morso','mosca','motto','mucca','muffa','munto','messo',
+  'narco','nerbo','nervo','nesso','netto','nocca','notte','nullo','nuovo','nuova',
+  'opera','onore','ordine','osare','ossia',
+  'padre','palla','palmo','panca','panno','parco','parto','passo','pasta','paura','penna','perla',
+  'perno','pesce','pesta','piano','pigro','pista','piuma','pizza','plico','polso','ponce','ponte',
+  'porta','porto','posta','prato','prima','prova','punto','punta',
+  'rango','razza','reame','resta','rebus','renna','ressa','retto','ricco','righe','rotta','rosso','ruota',
+  'sacro','salsa','salto','santo','scala','scarpa','scena','segno','sella','senso','sfera',
+  'solco','sordo','sorte','spada','spago','spina','sposa','stelo','stile','stufa','succo',
+  'tacco','tango','tappo','tardo','tazza','tempo','terra','terso','testa','tetto','tigre',
+  'tonfo','tondo','torba','torre','tosco','treno','trota','turno','tutto',
+  'umore','unico','unire','usare','utile',
+  'vampa','vasto','vello','vento','verde','verme','verso','vetta','vigna','viola','virus','vista','vizzo','volle','volta','volto',
+  'zappa','zolla','zucca'
+];
+
+// --- Graph Building ---
+function buildGraph(words) {
+  const adj = new Map();
+  for (const w of words) adj.set(w, []);
+  for (let i = 0; i < words.length; i++) {
+    for (let j = i + 1; j < words.length; j++) {
+      if (diffCount(words[i], words[j]) === 1) {
+        adj.get(words[i]).push(words[j]);
+        adj.get(words[j]).push(words[i]);
+      }
+    }
+  }
+  return adj;
+}
+
+function diffCount(a, b) {
+  if (a.length !== b.length) return Infinity;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) d++;
+  return d;
+}
+
+// --- Path Finding (DFS with random walk) ---
+function findLadder(adj, rng, targetLen) {
+  const words = Array.from(adj.keys());
+  // Shuffle starting points
+  const shuffled = words.slice().sort(() => rng() - 0.5);
+
+  for (const start of shuffled) {
+    const path = dfsPath(adj, start, targetLen, rng);
+    if (path) return path;
+  }
+  return null;
+}
+
+function dfsPath(adj, start, targetLen, rng) {
+  const stack = [[start, [start], new Set([start])]];
+  let attempts = 0;
+  const maxAttempts = 5000;
+
+  while (stack.length > 0 && attempts < maxAttempts) {
+    attempts++;
+    const [node, path, visited] = stack.pop();
+
+    if (path.length === targetLen) return path;
+
+    const neighbors = adj.get(node) || [];
+    const shuffledN = neighbors.filter(n => !visited.has(n)).sort(() => rng() - 0.5);
+
+    for (const next of shuffledN.slice(0, 3)) {
+      const newVisited = new Set(visited);
+      newVisited.add(next);
+      stack.push([next, [...path, next], newVisited]);
+    }
+  }
+  return null;
+}
+
+// --- Persistence (localStorage) ---
+const STORAGE_KEY = 'scaletta_stats';
+
+function loadStats() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultStats();
+  } catch { return defaultStats(); }
+}
+
+function defaultStats() {
+  return { gamesPlayed: 0, gamesWon: 0, currentStreak: 0, maxStreak: 0, lastPlayed: '', bestTimes: {} };
+}
+
+function saveStats(s) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+}
+
+// --- Game State ---
+let wordLen = 4;
+let ladder = [];           // Array of 7 words (the solution)
+let playerGrid = [];       // Array of 7 arrays (letters), some editable
+let editableRows = [];     // Which rows are editable (indices 1-5)
+let changePositions = [];  // For each row i>0: which position changed from row i-1
+let selectedRow = -1;
+let selectedCol = -1;
+let timerInterval = null;
+let startTime = 0;
+let elapsed = 0;
+let gameWon = false;
+let graphCache = {};
+let isMobile = false;
+
+// --- DOM Refs ---
+const ladderEl = document.getElementById('ladder');
+const timerEl = document.getElementById('timer');
+const keyboardEl = document.getElementById('keyboard');
+const statsLineEl = document.getElementById('statsLine');
+
+// --- Init ---
+function init() {
+  isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  buildKeyboard();
+  if (!isMobile) keyboardEl.classList.add('hidden');
+  document.addEventListener('keydown', onKeyDown);
+  updateDiffButtons();
+  newGame();
+  updateStatsLine();
+}
+
+// --- Difficulty ---
+function setDiff(len) {
+  wordLen = len;
+  updateDiffButtons();
+  newGame();
+}
+
+function updateDiffButtons() {
+  document.querySelectorAll('.diff-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.diff) === wordLen);
+  });
+}
+
+// --- New Game ---
+function newGame() {
+  gameWon = false;
+  stopTimer();
+
+  const wordList = wordLen === 4 ? WORDS_4 : WORDS_5;
+
+  // Build graph (cache per word length)
+  if (!graphCache[wordLen]) {
+    graphCache[wordLen] = buildGraph(wordList);
+  }
+  const adj = graphCache[wordLen];
+
+  // Generate seed from date + random
+  const seed = Date.now() ^ (Math.random() * 0xFFFFFF | 0);
+  const rng = mulberry32(seed);
+
+  ladder = findLadder(adj, rng, 7);
+
+  if (!ladder) {
+    // Fallback: try with shorter path
+    ladder = findLadder(adj, rng, 5);
+    if (!ladder) {
+      // Last resort: try many seeds
+      for (let i = 0; i < 20; i++) {
+        const rng2 = mulberry32(seed + i * 7919);
+        ladder = findLadder(adj, rng2, 7) || findLadder(adj, rng2, 5);
+        if (ladder) break;
+      }
+    }
+  }
+
+  if (!ladder) {
+    alert('Impossibile generare il puzzle. Riprova.');
+    return;
+  }
+
+  // Compute change positions
+  changePositions = [null]; // row 0 has no change
+  for (let i = 1; i < ladder.length; i++) {
+    for (let c = 0; c < ladder[i].length; c++) {
+      if (ladder[i][c] !== ladder[i-1][c]) {
+        changePositions.push(c);
+        break;
+      }
+    }
+  }
+
+  // Setup player grid
+  playerGrid = [];
+  editableRows = [];
+  for (let r = 0; r < ladder.length; r++) {
+    const row = ladder[r].split('');
+    if (r === 0 || r === ladder.length - 1) {
+      // Given rows: fully visible
+      playerGrid.push(row);
+    } else {
+      // Editable rows: show all letters except the changed one
+      const pRow = row.slice();
+      pRow[changePositions[r]] = '';
+      playerGrid.push(pRow);
+      editableRows.push(r);
+    }
+  }
+
+  selectedRow = editableRows.length > 0 ? editableRows[0] : -1;
+  selectedCol = selectedRow >= 0 ? changePositions[selectedRow] : -1;
+
+  renderLadder();
+  startTimer();
+}
+
+// --- Rendering ---
+function renderLadder() {
+  ladderEl.innerHTML = '';
+
+  for (let r = 0; r < ladder.length; r++) {
+    // Connector between rows
+    if (r > 0) {
+      const conn = document.createElement('div');
+      conn.className = 'connector';
+      const dot = document.createElement('div');
+      dot.className = 'connector-dot';
+      // Check if connection is valid
+      if (isRowComplete(r-1) && isRowComplete(r)) {
+        const w1 = playerGrid[r-1].join('');
+        const w2 = playerGrid[r].join('');
+        if (diffCount(w1, w2) === 1) dot.classList.add('valid');
+      }
+      conn.appendChild(dot);
+      ladderEl.appendChild(conn);
+    }
+
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'ladder-row';
+
+    const isGiven = r === 0 || r === ladder.length - 1;
+    const isEditable = editableRows.includes(r);
+    const isActive = r === selectedRow;
+
+    if (isGiven) rowDiv.classList.add('given');
+    if (isActive) rowDiv.classList.add('active-row');
+
+    // Row indicator
+    const indicator = document.createElement('div');
+    indicator.className = 'row-indicator';
+    if (isGiven) {
+      indicator.textContent = r === 0 ? '▲' : '▼';
+      indicator.classList.add('done');
+    } else if (isRowCorrect(r)) {
+      indicator.textContent = '✓';
+      indicator.classList.add('done');
+    } else if (isActive) {
+      indicator.textContent = '→';
+      indicator.classList.add('current');
+    } else {
+      indicator.textContent = (r) + '';
+    }
+    rowDiv.appendChild(indicator);
+
+    // Cells
+    for (let c = 0; c < playerGrid[r].length; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+
+      const letter = playerGrid[r][c];
+      cell.textContent = letter;
+
+      if (isGiven) {
+        cell.classList.add('given-cell');
+      } else if (c === changePositions[r]) {
+        cell.classList.add('editable');
+        if (r === selectedRow && c === selectedCol) cell.classList.add('selected');
+        if (letter && isRowComplete(r)) {
+          const word = playerGrid[r].join('');
+          const wordList = wordLen === 4 ? WORDS_4 : WORDS_5;
+          if (word === ladder[r]) {
+            cell.classList.add('correct');
+          } else if (!wordList.includes(word)) {
+            cell.classList.add('error');
+          }
+        }
+        cell.addEventListener('click', () => selectCell(r, c));
+      } else {
+        // Non-changing letter in editable row
+        cell.classList.add('given-cell');
+        if (c === changePositions[r]) cell.classList.add('changed-pos');
+      }
+
+      rowDiv.appendChild(cell);
+    }
+
+    ladderEl.appendChild(rowDiv);
+  }
+}
+
+function isRowComplete(r) {
+  return playerGrid[r].every(l => l !== '');
+}
+
+function isRowCorrect(r) {
+  return playerGrid[r].join('') === ladder[r];
+}
+
+function selectCell(r, c) {
+  selectedRow = r;
+  selectedCol = c;
+  renderLadder();
+}
+
+// --- Input Handling ---
+function inputLetter(letter) {
+  if (gameWon || selectedRow < 0) return;
+
+  letter = letter.toLowerCase();
+  if (!/^[a-zàèéìòù]$/.test(letter)) return;
+
+  playerGrid[selectedRow][selectedCol] = letter;
+  renderLadder();
+  checkWin();
+
+  // Auto-advance to next empty editable row
+  if (!gameWon) {
+    const nextRow = editableRows.find(r => r > selectedRow && playerGrid[r][changePositions[r]] === '');
+    if (nextRow !== undefined) {
+      selectedRow = nextRow;
+      selectedCol = changePositions[nextRow];
+      renderLadder();
+    }
+  }
+}
+
+function deleteLetter() {
+  if (gameWon || selectedRow < 0) return;
+  playerGrid[selectedRow][selectedCol] = '';
+  renderLadder();
+}
+
+function onKeyDown(e) {
+  if (gameWon) return;
+
+  if (e.key === 'Backspace' || e.key === 'Delete') {
+    e.preventDefault();
+    deleteLetter();
+    return;
+  }
+
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    const idx = editableRows.indexOf(selectedRow);
+    if (idx > 0) {
+      selectedRow = editableRows[idx - 1];
+      selectedCol = changePositions[selectedRow];
+      renderLadder();
+    }
+    return;
+  }
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const idx = editableRows.indexOf(selectedRow);
+    if (idx < editableRows.length - 1) {
+      selectedRow = editableRows[idx + 1];
+      selectedCol = changePositions[selectedRow];
+      renderLadder();
+    }
+    return;
+  }
+
+  if (e.key.length === 1 && /^[a-zA-ZàèéìòùÀÈÉÌÒÙ]$/.test(e.key)) {
+    e.preventDefault();
+    inputLetter(e.key);
+  }
+}
+
+// --- Keyboard (mobile) ---
+function buildKeyboard() {
+  const rows = [
+    ['Q','W','E','R','T','Y','U','I','O','P'],
+    ['A','S','D','F','G','H','J','K','L'],
+    ['INVIO','Z','X','C','V','B','N','M','⌫']
+  ];
+
+  keyboardEl.innerHTML = '';
+  for (const row of rows) {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'kb-row';
+    for (const key of row) {
+      const btn = document.createElement('button');
+      btn.className = 'kb-key';
+      if (key === '⌫' || key === 'INVIO') {
+        btn.classList.add('wide');
+        if (key === 'INVIO') btn.classList.add('action');
+      }
+      btn.textContent = key;
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (key === '⌫') {
+          deleteLetter();
+        } else if (key === 'INVIO') {
+          // Move to next row or check
+          checkWin();
+        } else {
+          inputLetter(key);
+        }
+      });
+      rowDiv.appendChild(btn);
+    }
+    keyboardEl.appendChild(rowDiv);
+  }
+}
+
+// --- Hint ---
+function hint() {
+  if (gameWon) return;
+
+  // Find first incomplete editable row
+  const targetRow = editableRows.find(r => playerGrid[r][changePositions[r]] === '' || playerGrid[r].join('') !== ladder[r]);
+  if (targetRow === undefined) return;
+
+  const cp = changePositions[targetRow];
+  playerGrid[targetRow][cp] = ladder[targetRow][cp];
+  selectedRow = targetRow;
+  selectedCol = cp;
+  renderLadder();
+  checkWin();
+
+  // Advance selection
+  if (!gameWon) {
+    const nextRow = editableRows.find(r => r > targetRow && playerGrid[r][changePositions[r]] === '');
+    if (nextRow !== undefined) {
+      selectedRow = nextRow;
+      selectedCol = changePositions[nextRow];
+      renderLadder();
+    }
+  }
+}
+
+// --- Win Check ---
+function checkWin() {
+  for (const r of editableRows) {
+    if (playerGrid[r].join('') !== ladder[r]) return;
+  }
+
+  // All correct!
+  gameWon = true;
+  stopTimer();
+  selectedRow = -1;
+  selectedCol = -1;
+  renderLadder();
+
+  // Update stats
+  const stats = loadStats();
+  stats.gamesPlayed++;
+  stats.gamesWon++;
+  const today = new Date().toISOString().slice(0, 10);
+  if (stats.lastPlayed === today || stats.lastPlayed === yesterday()) {
+    stats.currentStreak++;
+  } else {
+    stats.currentStreak = 1;
+  }
+  stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
+  stats.lastPlayed = today;
+  const key = wordLen + 'L';
+  if (!stats.bestTimes[key] || elapsed < stats.bestTimes[key]) {
+    stats.bestTimes[key] = elapsed;
+  }
+  saveStats(stats);
+  updateStatsLine();
+
+  setTimeout(() => {
+    document.getElementById('winMsg').textContent =
+      `Hai completato la scaletta in ${formatTime(elapsed)}!`;
+    document.getElementById('winModal').classList.add('show');
+  }, 400);
+}
+
+function yesterday() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+// --- Timer ---
+function startTimer() {
+  stopTimer();
+  startTime = Date.now();
+  elapsed = 0;
+  timerEl.textContent = '00:00';
+  timerInterval = setInterval(() => {
+    elapsed = Date.now() - startTime;
+    timerEl.textContent = formatTime(elapsed);
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+function formatTime(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  return String(m).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+}
+
+// --- Stats UI ---
+function showStats() {
+  const stats = loadStats();
+  const grid = document.getElementById('statsGrid');
+  const bt4 = stats.bestTimes['4L'] ? formatTime(stats.bestTimes['4L']) : '-';
+  const bt5 = stats.bestTimes['5L'] ? formatTime(stats.bestTimes['5L']) : '-';
+  grid.innerHTML = `
+    <div class="stat-item"><div class="num">${stats.gamesPlayed}</div><div class="lbl">Partite</div></div>
+    <div class="stat-item"><div class="num">${stats.gamesWon}</div><div class="lbl">Vittorie</div></div>
+    <div class="stat-item"><div class="num">${stats.currentStreak}</div><div class="lbl">Serie attuale</div></div>
+    <div class="stat-item"><div class="num">${stats.maxStreak}</div><div class="lbl">Serie max</div></div>
+    <div class="stat-item"><div class="num">${bt4}</div><div class="lbl">Record 4 lett.</div></div>
+    <div class="stat-item"><div class="num">${bt5}</div><div class="lbl">Record 5 lett.</div></div>
+  `;
+  document.getElementById('statsModal').classList.add('show');
+}
+
+function closeStats() {
+  document.getElementById('statsModal').classList.remove('show');
+}
+
+function closeWin() {
+  document.getElementById('winModal').classList.remove('show');
+}
+
+function updateStatsLine() {
+  const s = loadStats();
+  if (s.gamesPlayed > 0) {
+    statsLineEl.textContent = `Vinte: ${s.gamesWon}/${s.gamesPlayed} · Serie: ${s.currentStreak}`;
+  }
+}
+
+// --- Start ---
+init();
+</script>
+</body>
+</html>
