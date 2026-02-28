@@ -1,16 +1,16 @@
-const CACHE_NAME = 'puzzle-v2';
+const CACHE_NAME = 'puzzle-v3';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/crowns.html',
-  '/pathtrace.html',
-  '/armonia.html',
-  '/logica.html',
-  '/indovina.html',
-  '/labamba.html',
-  '/confini.html',
-  '/scaletta.html',
-  '/icon.svg'
+  './',
+  './index.html',
+  './crowns.html',
+  './pathtrace.html',
+  './armonia.html',
+  './logica.html',
+  './indovina.html',
+  './labamba.html',
+  './confini.html',
+  './scaletta.html',
+  './icon.svg'
 ];
 
 self.addEventListener('install', e => {
