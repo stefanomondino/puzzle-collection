@@ -1,4 +1,4 @@
-const CACHE_NAME = 'puzzle-v1';
+const CACHE_NAME = 'puzzle-v2';
 const ASSETS = [
   '/',
   '/index.html',
@@ -6,6 +6,10 @@ const ASSETS = [
   '/pathtrace.html',
   '/armonia.html',
   '/logica.html',
+  '/indovina.html',
+  '/labamba.html',
+  '/confini.html',
+  '/scaletta.html',
   '/icon.svg'
 ];
 
@@ -24,6 +28,9 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  // Let cross-origin requests (e.g. iTunes API, audio previews) pass through without SW interference
+  if (new URL(e.request.url).origin !== self.location.origin) return;
+
   e.respondWith(
     fetch(e.request)
       .then(res => {
