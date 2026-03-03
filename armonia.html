@@ -349,7 +349,7 @@
   Riempi la griglia con <strong style="color:var(--color-a);">cerchi rossi</strong> e <strong style="color:var(--color-b);">cerchi blu</strong>.<br>
   Non pi&ugrave; di due simboli uguali consecutivi. Stesso numero per riga e colonna.<br>
   <strong>=</strong> indica celle uguali &middot; <strong>&times;</strong> indica celle diverse.<br>
-  <strong>Tap</strong> per ciclare: rosso &rarr; blu &rarr; vuoto.
+  <strong>Tap</strong> per ciclare: blu &rarr; rosso &rarr; vuoto.
 </p>
 
 <div class="overlay" id="overlay">
@@ -684,8 +684,8 @@ function onCellClick(e) {
 
   const oldVal = board[row][col];
   let newVal;
-  if (oldVal === EMPTY) newVal = SUN;
-  else if (oldVal === SUN) newVal = MOON;
+  if (oldVal === EMPTY) newVal = MOON;
+  else if (oldVal === MOON) newVal = SUN;
   else newVal = EMPTY;
 
   board[row][col] = newVal;
