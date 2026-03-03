@@ -547,37 +547,69 @@ function showStatsModal() {
 
 // ─── Compute bounding box from SVG path and generate silhouette ─
 function parseBBox(path) {
-  const nums = path.match(/-?\d+\.?\d*/g);
-  if (!nums) return '0 0 100 100';
+  if (!path) return '0 0 100 100';
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  // Parse path commands to extract absolute coordinates
-  const cmds = path.match(/[MmLlHhVvCcSsQqTtAaZz][-\d.,\s]*/g) || [];
-  let cx = 0, cy = 0;
+  function track(x, y) {
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+  }
+  const cmds = path.match(/[MmLlHhVvCcSsQqTtAaZz][^MmLlHhVvCcSsQqTtAaZz]*/g) || [];
+  let cx = 0, cy = 0, sx = 0, sy = 0; // current pos + subpath start
   for (const cmd of cmds) {
     const c = cmd[0];
     const vals = cmd.slice(1).trim().match(/-?\d+\.?\d*/g);
-    if (!vals) continue;
-    const n = vals.map(Number);
-    if (c === 'M' || c === 'L') {
-      for (let i = 0; i < n.length; i += 2) {
-        cx = n[i]; cy = n[i+1];
-        if (cx < minX) minX = cx; if (cx > maxX) maxX = cx;
-        if (cy < minY) minY = cy; if (cy > maxY) maxY = cy;
+    const n = vals ? vals.map(Number) : [];
+    if (c === 'M') {
+      for (let i = 0; i < n.length; i += 2) { cx = n[i]; cy = n[i+1]; track(cx, cy); }
+      sx = cx; sy = cy;
+    } else if (c === 'm') {
+      for (let i = 0; i < n.length; i += 2) { cx += n[i]; cy += n[i+1]; track(cx, cy); }
+      sx = cx; sy = cy;
+    } else if (c === 'L') {
+      for (let i = 0; i < n.length; i += 2) { cx = n[i]; cy = n[i+1]; track(cx, cy); }
+    } else if (c === 'l') {
+      for (let i = 0; i < n.length; i += 2) { cx += n[i]; cy += n[i+1]; track(cx, cy); }
+    } else if (c === 'H') { cx = n[0]; track(cx, cy); }
+    else if (c === 'h') { cx += n[0]; track(cx, cy); }
+    else if (c === 'V') { cy = n[0]; track(cx, cy); }
+    else if (c === 'v') { cy += n[0]; track(cx, cy); }
+    else if (c === 'C') {
+      for (let i = 0; i < n.length; i += 6) {
+        track(n[i], n[i+1]); track(n[i+2], n[i+3]); // control points
+        cx = n[i+4]; cy = n[i+5]; track(cx, cy);
       }
-    } else if (c === 'm' || c === 'l') {
-      for (let i = 0; i < n.length; i += 2) {
-        cx += n[i]; cy += n[i+1];
-        if (cx < minX) minX = cx; if (cx > maxX) maxX = cx;
-        if (cy < minY) minY = cy; if (cy > maxY) maxY = cy;
+    } else if (c === 'c') {
+      for (let i = 0; i < n.length; i += 6) {
+        track(cx+n[i], cy+n[i+1]); track(cx+n[i+2], cy+n[i+3]);
+        cx += n[i+4]; cy += n[i+5]; track(cx, cy);
       }
-    } else if (c === 'H') { cx = n[0]; if (cx < minX) minX = cx; if (cx > maxX) maxX = cx; }
-    else if (c === 'h') { cx += n[0]; if (cx < minX) minX = cx; if (cx > maxX) maxX = cx; }
-    else if (c === 'V') { cy = n[0]; if (cy < minY) minY = cy; if (cy > maxY) maxY = cy; }
-    else if (c === 'v') { cy += n[0]; if (cy < minY) minY = cy; if (cy > maxY) maxY = cy; }
-    else if (c === 'C') { for (let i = 0; i < n.length; i += 6) { cx = n[i+4]; cy = n[i+5]; if (cx < minX) minX = cx; if (cx > maxX) maxX = cx; if (cy < minY) minY = cy; if (cy > maxY) maxY = cy; } }
-    else if (c === 'c') { for (let i = 0; i < n.length; i += 6) { cx += n[i+4]; cy += n[i+5]; if (cx < minX) minX = cx; if (cx > maxX) maxX = cx; if (cy < minY) minY = cy; if (cy > maxY) maxY = cy; } }
-    else if (c === 'z' || c === 'Z') { /* no-op */ }
+    } else if (c === 'S') {
+      for (let i = 0; i < n.length; i += 4) {
+        track(n[i], n[i+1]); cx = n[i+2]; cy = n[i+3]; track(cx, cy);
+      }
+    } else if (c === 's') {
+      for (let i = 0; i < n.length; i += 4) {
+        track(cx+n[i], cy+n[i+1]); cx += n[i+2]; cy += n[i+3]; track(cx, cy);
+      }
+    } else if (c === 'Q') {
+      for (let i = 0; i < n.length; i += 4) {
+        track(n[i], n[i+1]); cx = n[i+2]; cy = n[i+3]; track(cx, cy);
+      }
+    } else if (c === 'q') {
+      for (let i = 0; i < n.length; i += 4) {
+        track(cx+n[i], cy+n[i+1]); cx += n[i+2]; cy += n[i+3]; track(cx, cy);
+      }
+    } else if (c === 'T') {
+      for (let i = 0; i < n.length; i += 2) { cx = n[i]; cy = n[i+1]; track(cx, cy); }
+    } else if (c === 't') {
+      for (let i = 0; i < n.length; i += 2) { cx += n[i]; cy += n[i+1]; track(cx, cy); }
+    } else if (c === 'A') {
+      for (let i = 0; i < n.length; i += 7) { cx = n[i+5]; cy = n[i+6]; track(cx, cy); }
+    } else if (c === 'a') {
+      for (let i = 0; i < n.length; i += 7) { cx += n[i+5]; cy += n[i+6]; track(cx, cy); }
+    } else if (c === 'z' || c === 'Z') { cx = sx; cy = sy; }
   }
+  if (minX === Infinity) return '0 0 100 100';
   const pad = 5;
   return `${minX - pad} ${minY - pad} ${maxX - minX + pad*2} ${maxY - minY + pad*2}`;
 }
