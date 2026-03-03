@@ -455,7 +455,21 @@ const GENRES = {
     'Queen', 'Led Zeppelin', 'Pink Floyd', 'AC DC', 'Nirvana',
     'U2', 'Guns N Roses', 'The Rolling Stones', 'Foo Fighters', 'Red Hot Chili Peppers',
     'Bon Jovi', 'Aerosmith', 'Metallica', 'Green Day', 'Linkin Park',
-    'Oasis', 'Radiohead', 'The Who', 'Deep Purple', 'Black Sabbath'
+    'Oasis', 'Radiohead', 'The Who', 'Deep Purple', 'Black Sabbath',
+    'The Beatles', 'The Doors', 'Jimi Hendrix', 'Eric Clapton', 'Eagles',
+    'Fleetwood Mac', 'The Police', 'Rush', 'ZZ Top', 'Creedence Clearwater Revival',
+    'Lynyrd Skynyrd', 'The Clash', 'Ramones', 'Sex Pistols', 'Joy Division',
+    'Pixies', 'Sonic Youth', 'The Smiths', 'R.E.M.', 'Pearl Jam',
+    'Soundgarden', 'Alice in Chains', 'Stone Temple Pilots', 'Smashing Pumpkins', 'Weezer',
+    'Blink 182', 'Sum 41', 'The Offspring', 'System of a Down', 'Tool',
+    'Rage Against the Machine', 'Muse', 'Arctic Monkeys', 'The Strokes', 'Kings of Leon',
+    'The Black Keys', 'Jack White', 'Tame Impala', 'Gorillaz', 'Blur',
+    'Iron Maiden', 'Megadeth', 'Slayer', 'Pantera', 'Judas Priest',
+    'Motley Crue', 'Def Leppard', 'Scorpions', 'Kiss', 'Van Halen',
+    'Journey', 'Foreigner', 'Boston', 'Styx', 'Kansas',
+    'Yes', 'Genesis', 'King Crimson', 'Jethro Tull', 'Supertramp',
+    'Dire Straits', 'Tom Petty', 'Bruce Springsteen', 'Bob Dylan', 'Neil Young',
+    'Cream', 'The Yardbirds', 'Jeff Beck', 'Santana', 'Stevie Ray Vaughan'
   ],
   'Anni 80': [
     'a-ha', 'Duran Duran', 'Depeche Mode', 'Cyndi Lauper', 'Tears for Fears',
@@ -468,31 +482,84 @@ const GENRES = {
 const GENRE_KEYS = Object.keys(GENRES);
 let selectedGenre = 'Pop';
 
-// ─── iTunes Search API (direct fetch + CORS proxy fallback) ─────
-let _useProxy = false; // after first direct success, keep using direct
+// ─── Music Search API (iTunes primary, Deezer fallback) ─────────
+let _itunesUseProxy = false;
+let _itunesFailing = false; // true after repeated 429s, switches to Deezer
 
-async function searchMusic(term, limit = 10) {
-  const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&limit=${limit}&country=it`;
+async function searchiTunes(term, limit = 10) {
+  const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&attribute=artistTerm&limit=${limit}&country=it`;
 
   async function doFetch(url) {
     const resp = await fetch(url, { mode: 'cors', credentials: 'omit' });
+    if (resp.status === 429) throw new Error('RATE_LIMITED');
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     return data.results.filter(r => r.previewUrl && r.trackName && r.artistName);
   }
 
-  if (!_useProxy) {
-    try {
-      const results = await doFetch(itunesUrl);
-      return results;
-    } catch(e) {
-      _useProxy = true; // switch to proxy for all subsequent requests
+  if (!_itunesUseProxy) {
+    try { return await doFetch(itunesUrl); }
+    catch(e) {
+      if (e.message === 'RATE_LIMITED') throw e;
+      _itunesUseProxy = true;
     }
   }
 
-  // CORS proxy fallback (Safari sends headers that iTunes rejects with 403)
   const proxyUrl = `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(itunesUrl)}`;
   return await doFetch(proxyUrl);
+}
+
+async function searchDeezer(term, limit = 10) {
+  const url = `https://api.deezer.com/search?q=${encodeURIComponent(term)}&limit=${limit}&output=jsonp&callback=_dzcb`;
+  // Deezer doesn't support CORS for plain fetch, use JSONP
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => { cleanup(); reject(new Error('Deezer timeout')); }, 8000);
+    const cbName = '_dzcb' + Date.now();
+    function cleanup() { clearTimeout(timeout); delete window[cbName]; if (script.parentNode) script.remove(); }
+    window[cbName] = function(data) {
+      cleanup();
+      if (!data || !data.data) return resolve([]);
+      resolve(data.data.filter(t => t.preview && t.title && t.artist).map(t => ({
+        trackId: 'dz_' + t.id,
+        trackName: t.title,
+        artistName: t.artist.name,
+        artworkUrl100: t.album && t.album.cover_medium ? t.album.cover_medium : '',
+        previewUrl: t.preview
+      })));
+    };
+    const script = document.createElement('script');
+    script.src = `https://api.deezer.com/search?q=${encodeURIComponent(term)}&limit=${limit}&output=jsonp&callback=${cbName}`;
+    script.onerror = () => { cleanup(); reject(new Error('Deezer network error')); };
+    document.head.appendChild(script);
+  });
+}
+
+let _rateLimitCount = 0;
+
+function artistMatches(resultArtist, searchTerm) {
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return norm(resultArtist).includes(norm(searchTerm)) || norm(searchTerm).includes(norm(resultArtist));
+}
+
+async function searchMusic(term, limit = 10) {
+  let results = [];
+  if (!_itunesFailing) {
+    try {
+      results = await searchiTunes(term, limit);
+      _rateLimitCount = 0;
+    } catch(e) {
+      if (e.message === 'RATE_LIMITED') {
+        _rateLimitCount++;
+        if (_rateLimitCount >= 3) _itunesFailing = true;
+      }
+    }
+  }
+  if (results.length === 0) {
+    // Fallback to Deezer
+    results = await searchDeezer(term, limit);
+  }
+  // Filter out results where the artist doesn't match the search term
+  return results.filter(r => artistMatches(r.artistName, term));
 }
 
 // ─── Persistence (localStorage) ─────────────────────────────────
@@ -573,21 +640,25 @@ async function buildRounds() {
   const terms = [...GENRES[selectedGenre]];
   shuffleArray(terms);
 
-  // Fetch songs from multiple artists to get variety
+  // Fetch songs from multiple artists (batched to avoid rate limits)
   const allSongs = [];
   const fetchErrors = [];
-  const fetchPromises = terms.slice(0, 15).map(async (term) => {
-    try {
-      const results = await searchMusic(term, 8);
-      results.forEach(r => {
-        if (!allSongs.find(s => s.trackId === r.trackId)) {
-          allSongs.push(r);
-        }
-      });
-    } catch(e) { fetchErrors.push(term + ': ' + e.message); }
-  });
-
-  await Promise.all(fetchPromises);
+  const artistBatch = terms.slice(0, 15);
+  const BATCH_SIZE = 5;
+  for (let b = 0; b < artistBatch.length; b += BATCH_SIZE) {
+    const batch = artistBatch.slice(b, b + BATCH_SIZE);
+    const fetchPromises = batch.map(async (term) => {
+      try {
+        const results = await searchMusic(term, 8);
+        results.forEach(r => {
+          if (!allSongs.find(s => s.trackId === r.trackId)) {
+            allSongs.push(r);
+          }
+        });
+      } catch(e) { fetchErrors.push(term + ': ' + e.message); }
+    });
+    await Promise.all(fetchPromises);
+  }
 
   if (allSongs.length < ROUNDS_PER_GAME + 3) {
     const detail = fetchErrors.length > 0
