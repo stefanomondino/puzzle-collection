@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#6C5CE7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Puzzle">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Pezze - Puzzle Game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+  :root {
+    --bg: #faf8f5;
+    --card: #ffffff;
+    --primary: #6C5CE7;
+    --primary-light: #e8e4fd;
+    --text: #2d2d2d;
+    --text-muted: #777777;
+    --success: #00b894;
+    --cell-size: 60px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  header {
+    width: 100%;
+    max-width: 500px;
+    padding: 16px 20px 8px;
+    text-align: center;
+    position: relative;
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--primary);
+    text-transform: uppercase;
+  }
+
+  header p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 20px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .timer {
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    min-width: 70px;
+    text-align: center;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn:active { transform: scale(0.95); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+  }
+
+  .btn-outline:hover { background: var(--primary-light); }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #5a4bd6; }
+
+  .diff-selector {
+    display: flex;
+    gap: 8px;
+    padding: 4px 20px 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 500px;
+  }
+
+  .diff-btn {
+    border-radius: 20px;
+    border: 2px solid #d9d9d9;
+    background: var(--card);
+    color: var(--text);
+    padding: 6px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .diff-btn.active {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .stats {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 0 20px 8px;
+    text-align: center;
+  }
+
+  .board-container {
+    display: flex;
+    justify-content: center;
+    padding: 8px;
+  }
+
+  .board {
+    display: grid;
+    gap: 0;
+    background: #ccc;
+    border: 2px solid #999;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .cell {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    border: 1px solid #ddd;
+    transition: background 0.1s;
+  }
+
+  .cell:hover { background: #f5f3ff; }
+
+  .cell.filled {
+    cursor: pointer;
+  }
+
+  .cell .clue {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 800;
+    color: #fff;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .cell .clue-shape {
+    position: absolute;
+    border-radius: 4px;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .cell .clue-shape.square {
+    width: 34px;
+    height: 34px;
+  }
+
+  .cell .clue-shape.wide {
+    width: 42px;
+    height: 26px;
+  }
+
+  .cell .clue-shape.tall {
+    width: 26px;
+    height: 42px;
+  }
+
+  /* Patch colors */
+  .patch-0 { background: #E8D5F5; }
+  .patch-1 { background: #D5EAF5; }
+  .patch-2 { background: #F5E6D5; }
+  .patch-3 { background: #D5F5E0; }
+  .patch-4 { background: #F5D5D5; }
+  .patch-5 { background: #F5F0D5; }
+  .patch-6 { background: #D5F5F0; }
+  .patch-7 { background: #E0D5F5; }
+  .patch-8 { background: #F5D5EA; }
+  .patch-9 { background: #D5E0F5; }
+
+  .patch-clue-0 { background: #C4A2E0; }
+  .patch-clue-1 { background: #A2CAE0; }
+  .patch-clue-2 { background: #E0C4A2; }
+  .patch-clue-3 { background: #A2E0B8; }
+  .patch-clue-4 { background: #E0A2A2; }
+  .patch-clue-5 { background: #E0DAA2; }
+  .patch-clue-6 { background: #A2E0DA; }
+  .patch-clue-7 { background: #BAA2E0; }
+  .patch-clue-8 { background: #E0A2C4; }
+  .patch-clue-9 { background: #A2BAE0; }
+
+  /* Border removal within same patch */
+  .cell.no-border-right { border-right-color: transparent; }
+  .cell.no-border-bottom { border-bottom-color: transparent; }
+  .cell.no-border-left { border-left-color: transparent; }
+  .cell.no-border-top { border-top-color: transparent; }
+
+  /* Thick borders for patch edges */
+  .cell.patch-border-top { border-top: 2.5px solid #666; }
+  .cell.patch-border-bottom { border-bottom: 2.5px solid #666; }
+  .cell.patch-border-left { border-left: 2.5px solid #666; }
+  .cell.patch-border-right { border-right: 2.5px solid #666; }
+
+  /* Selection highlight */
+  .cell.selecting {
+    outline: 3px solid var(--primary);
+    outline-offset: -3px;
+    z-index: 5;
+  }
+
+  .cell.error {
+    animation: shake 0.3s;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+
+  .message {
+    text-align: center;
+    padding: 8px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary);
+    min-height: 32px;
+  }
+
+  .instructions {
+    max-width: 400px;
+    padding: 16px 24px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .overlay.show { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 36px 32px;
+    text-align: center;
+    max-width: 320px;
+    width: 90%;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+  }
+
+  .modal h2 {
+    font-size: 24px;
+    color: var(--success);
+    margin-bottom: 8px;
+  }
+
+  .modal .time {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 8px 0;
+  }
+
+  .modal p {
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  /* Stats modal */
+  .stats-modal .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .stats-modal .stat-item {
+    text-align: center;
+  }
+
+  .stats-modal .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  .stats-modal .stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .stats-btn {
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px 8px;
+    color: var(--text-muted);
+    transition: color 0.15s;
+  }
+
+  .stats-btn:hover { color: var(--primary); }
+
+  @media (max-width: 420px) {
+    :root { --cell-size: 50px; }
+    .cell .clue { font-size: 14px; }
+    .cell .clue-shape.square { width: 28px; height: 28px; }
+    .cell .clue-shape.wide { width: 36px; height: 22px; }
+    .cell .clue-shape.tall { width: 22px; height: 36px; }
+  }
+
+  @media (max-width: 350px) {
+    :root { --cell-size: 44px; }
+    .cell .clue { font-size: 12px; }
+    .cell .clue-shape.square { width: 24px; height: 24px; }
+    .cell .clue-shape.wide { width: 30px; height: 18px; }
+    .cell .clue-shape.tall { width: 18px; height: 30px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" style="position:absolute;left:16px;top:18px;color:var(--primary);text-decoration:none;font-weight:600;font-size:18px;">← Menu</a>
+  <h1>Pezze</h1>
+  <p>Copri la griglia con le forme giuste</p>
+  <button class="stats-btn" id="btnStats" style="position:absolute;right:16px;top:18px;" title="Statistiche">🏆</button>
+</header>
+
+<div class="toolbar">
+  <button class="btn btn-outline" id="btnUndo">↩ Annulla</button>
+  <div class="timer" id="timer">0:00</div>
+  <button class="btn btn-outline" id="btnReset">⟳ Reset</button>
+</div>
+
+<div class="diff-selector" id="diffSelector">
+  <button class="diff-btn active" data-size="5">5×5</button>
+  <button class="diff-btn" data-size="6">6×6</button>
+  <button class="diff-btn" data-size="7">7×7</button>
+</div>
+
+<p class="stats" id="statsLine"></p>
+
+<div class="board-container" id="boardContainer">
+  <div class="board" id="board"></div>
+</div>
+
+<div class="message" id="message"></div>
+
+<p class="instructions">
+  Riempi la griglia di <strong>rettangoli</strong>.<br>
+  Ogni indizio mostra il <strong>numero di celle</strong> e la <strong>forma</strong> (quadrato, largo o alto) del rettangolo che lo contiene.<br>
+  Tocca una cella per iniziare, poi trascina per disegnare il rettangolo.
+</p>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">Completato!</h2>
+    <div class="time" id="modalTime">0:00</div>
+    <p id="modalMsg">Hai risolto il puzzle!</p>
+    <button class="btn btn-primary" id="btnNext">Nuovo puzzle →</button>
+  </div>
+</div>
+
+<div class="overlay" id="statsOverlay">
+  <div class="modal stats-modal">
+    <h2 style="color:var(--primary);">Statistiche</h2>
+    <div class="stat-grid" id="statGrid"></div>
+    <button class="btn btn-primary" id="btnCloseStats">Chiudi</button>
+  </div>
+</div>
+
+<script>
+// ─── Seeded PRNG (Mulberry32) ───────────────────────────────────
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// ─── Puzzle Generator ───────────────────────────────────────────
+function generatePuzzle(size, seed) {
+  const rng = mulberry32(seed);
+
+  // Fill the grid with non-overlapping rectangles
+  const grid = Array.from({length: size}, () => Array(size).fill(-1));
+  const patches = [];
+  let patchId = 0;
+
+  // Greedy random rectangle packing
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (grid[r][c] !== -1) continue;
+
+      // Determine max possible rectangle from (r,c)
+      const candidates = [];
+
+      for (let h = 1; h <= size - r; h++) {
+        for (let w = 1; w <= size - c; w++) {
+          if (h === 1 && w === 1) continue; // No 1x1 patches
+          // Check all cells in this rectangle are free
+          let fits = true;
+          for (let dr = 0; dr < h && fits; dr++) {
+            for (let dc = 0; dc < w && fits; dc++) {
+              if (grid[r + dr][c + dc] !== -1) fits = false;
+            }
+          }
+          if (fits) {
+            const area = h * w;
+            if (area >= 2 && area <= 9) {
+              let shapeType;
+              if (h === w) shapeType = 'square';
+              else if (w > h) shapeType = 'wide';
+              else shapeType = 'tall';
+              candidates.push({w, h, area, shapeType});
+            }
+          }
+        }
+      }
+
+      if (candidates.length === 0) {
+        // Can't place anything valid — puzzle generation failed
+        return null;
+      }
+
+      // Pick a random candidate, biased toward medium-sized patches
+      const pick = candidates[Math.floor(rng() * candidates.length)];
+
+      // Place the patch
+      for (let dr = 0; dr < pick.h; dr++) {
+        for (let dc = 0; dc < pick.w; dc++) {
+          grid[r + dr][c + dc] = patchId;
+        }
+      }
+
+      // Pick a random cell inside the patch as the clue cell
+      const clueR = r + Math.floor(rng() * pick.h);
+      const clueC = c + Math.floor(rng() * pick.w);
+
+      patches.push({
+        id: patchId,
+        r, c,
+        w: pick.w,
+        h: pick.h,
+        area: pick.area,
+        shapeType: pick.shapeType,
+        clueR,
+        clueC
+      });
+
+      patchId++;
+    }
+  }
+
+  // Verify no unfilled cells
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (grid[r][c] === -1) return null;
+    }
+  }
+
+  return { size, grid, patches, seed };
+}
+
+function generateRandomPuzzle(size) {
+  let seed = (Date.now() ^ (Math.random() * 0xFFFF)) & 0xFFFFFF;
+  let puzzle = null;
+  let attempts = 0;
+  while (!puzzle && attempts < 500) {
+    puzzle = generatePuzzle(size, seed);
+    seed++;
+    attempts++;
+  }
+  return puzzle;
+}
+
+// ─── Persistence (localStorage) ─────────────────────────────────
+const STORAGE_KEY = 'pezze_stats';
+
+function loadStats() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (data && data.gamesPlayed !== undefined) return data;
+  } catch(e) {}
+  return {
+    gamesPlayed: 0,
+    gamesWon: 0,
+    currentStreak: 0,
+    maxStreak: 0,
+    lastPlayed: null,
+    bestTimes: {5: null, 6: null, 7: null}
+  };
+}
+
+function saveStats() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+}
+
+let stats = loadStats();
+
+// ─── Game State ─────────────────────────────────────────────────
+let currentSize = 5;
+let puzzle = null;
+let solved = false;
+let playerPatches = []; // Array of placed patches: {r, c, w, h, patchId}
+let undoStack = [];
+let elapsed = 0;
+let timerInterval = null;
+let startTime = null;
+let dragStart = null;
+let dragEnd = null;
+let isDragging = false;
+
+// ─── DOM refs ───────────────────────────────────────────────────
+const boardEl = document.getElementById('board');
+const timerEl = document.getElementById('timer');
+const messageEl = document.getElementById('message');
+const overlayEl = document.getElementById('overlay');
+const statsOverlayEl = document.getElementById('statsOverlay');
+const modalTitle = document.getElementById('modalTitle');
+const modalTime = document.getElementById('modalTime');
+const modalMsg = document.getElementById('modalMsg');
+const statsLineEl = document.getElementById('statsLine');
+const statGridEl = document.getElementById('statGrid');
+
+// ─── Difficulty Selector ────────────────────────────────────────
+const diffBtns = document.querySelectorAll('.diff-btn');
+diffBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    diffBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentSize = parseInt(btn.dataset.size);
+    newGame();
+  });
+});
+
+// ─── New Game ───────────────────────────────────────────────────
+function newGame() {
+  puzzle = generateRandomPuzzle(currentSize);
+  if (!puzzle) {
+    messageEl.textContent = 'Errore nella generazione. Riprova.';
+    return;
+  }
+  solved = false;
+  playerPatches = [];
+  undoStack = [];
+  elapsed = 0;
+  startTime = null;
+  stopTimer();
+  timerEl.textContent = '0:00';
+  messageEl.textContent = '';
+  overlayEl.classList.remove('show');
+  renderBoard();
+  updateStatsLine();
+}
+
+// ─── Render Board ───────────────────────────────────────────────
+function renderBoard() {
+  const size = puzzle.size;
+  boardEl.style.gridTemplateColumns = `repeat(${size}, var(--cell-size))`;
+  boardEl.style.gridTemplateRows = `repeat(${size}, var(--cell-size))`;
+  boardEl.innerHTML = '';
+
+  // Build a map of player placements
+  const playerGrid = Array.from({length: size}, () => Array(size).fill(-1));
+  playerPatches.forEach((pp, idx) => {
+    for (let dr = 0; dr < pp.h; dr++) {
+      for (let dc = 0; dc < pp.w; dc++) {
+        playerGrid[pp.r + dr][pp.c + dc] = idx;
+      }
+    }
+  });
+
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+
+      // Check if this cell has a player patch
+      const ppIdx = playerGrid[r][c];
+      if (ppIdx >= 0) {
+        const pp = playerPatches[ppIdx];
+        const colorIdx = pp.patchId % 10;
+        cell.classList.add(`patch-${colorIdx}`, 'filled');
+
+        // Add thick borders for patch edges
+        if (r === pp.r) cell.classList.add('patch-border-top');
+        if (r === pp.r + pp.h - 1) cell.classList.add('patch-border-bottom');
+        if (c === pp.c) cell.classList.add('patch-border-left');
+        if (c === pp.c + pp.w - 1) cell.classList.add('patch-border-right');
+
+        // Remove internal borders
+        if (r > pp.r) cell.classList.add('no-border-top');
+        if (r < pp.r + pp.h - 1) cell.classList.add('no-border-bottom');
+        if (c > pp.c) cell.classList.add('no-border-left');
+        if (c < pp.c + pp.w - 1) cell.classList.add('no-border-right');
+      }
+
+      // Check if this cell has a clue
+      const clue = puzzle.patches.find(p => p.clueR === r && p.clueC === c);
+      if (clue) {
+        const shapeEl = document.createElement('div');
+        shapeEl.className = `clue-shape ${clue.shapeType}`;
+        const clueColorIdx = clue.id % 10;
+        shapeEl.classList.add(`patch-clue-${clueColorIdx}`);
+        cell.appendChild(shapeEl);
+
+        const numEl = document.createElement('div');
+        numEl.className = 'clue';
+        numEl.textContent = clue.area;
+        cell.appendChild(numEl);
+      }
+
+      boardEl.appendChild(cell);
+    }
+  }
+}
+
+// ─── Pointer / Touch Interaction ────────────────────────────────
+boardEl.addEventListener('pointerdown', (e) => {
+  if (solved) return;
+  e.preventDefault();
+  const cell = e.target.closest('.cell');
+  if (!cell) return;
+
+  const r = parseInt(cell.dataset.r);
+  const c = parseInt(cell.dataset.c);
+
+  // If clicking on a filled cell, remove that patch
+  const playerGrid = buildPlayerGrid();
+  if (playerGrid[r][c] >= 0) {
+    const ppIdx = playerGrid[r][c];
+    undoStack.push([...playerPatches]);
+    playerPatches.splice(ppIdx, 1);
+    renderBoard();
+    return;
+  }
+
+  if (!startTime) startTimer();
+
+  isDragging = true;
+  dragStart = {r, c};
+  dragEnd = {r, c};
+  updateSelectionHighlight();
+  boardEl.setPointerCapture(e.pointerId);
+});
+
+boardEl.addEventListener('pointermove', (e) => {
+  if (!isDragging) return;
+  e.preventDefault();
+
+  // Find cell under pointer
+  const rect = boardEl.getBoundingClientRect();
+  const cellSize = boardEl.firstElementChild ? boardEl.firstElementChild.getBoundingClientRect().width : 60;
+  const col = Math.floor((e.clientX - rect.left) / cellSize);
+  const row = Math.floor((e.clientY - rect.top) / cellSize);
+
+  const clampedR = Math.max(0, Math.min(puzzle.size - 1, row));
+  const clampedC = Math.max(0, Math.min(puzzle.size - 1, col));
+
+  if (dragEnd.r !== clampedR || dragEnd.c !== clampedC) {
+    dragEnd = {r: clampedR, c: clampedC};
+    updateSelectionHighlight();
+  }
+});
+
+boardEl.addEventListener('pointerup', (e) => {
+  if (!isDragging) return;
+  isDragging = false;
+
+  // Calculate rectangle from drag
+  const r1 = Math.min(dragStart.r, dragEnd.r);
+  const c1 = Math.min(dragStart.c, dragEnd.c);
+  const r2 = Math.max(dragStart.r, dragEnd.r);
+  const c2 = Math.max(dragStart.c, dragEnd.c);
+  const w = c2 - c1 + 1;
+  const h = r2 - r1 + 1;
+
+  clearSelectionHighlight();
+  tryPlacePatch(r1, c1, w, h);
+});
+
+boardEl.addEventListener('pointerleave', (e) => {
+  if (isDragging) {
+    isDragging = false;
+    clearSelectionHighlight();
+  }
+});
+
+function updateSelectionHighlight() {
+  clearSelectionHighlight();
+  const r1 = Math.min(dragStart.r, dragEnd.r);
+  const c1 = Math.min(dragStart.c, dragEnd.c);
+  const r2 = Math.max(dragStart.r, dragEnd.r);
+  const c2 = Math.max(dragStart.c, dragEnd.c);
+
+  const cells = boardEl.querySelectorAll('.cell');
+  cells.forEach(cell => {
+    const cr = parseInt(cell.dataset.r);
+    const cc = parseInt(cell.dataset.c);
+    if (cr >= r1 && cr <= r2 && cc >= c1 && cc <= c2) {
+      cell.classList.add('selecting');
+    }
+  });
+}
+
+function clearSelectionHighlight() {
+  boardEl.querySelectorAll('.selecting').forEach(c => c.classList.remove('selecting'));
+}
+
+// ─── Place Patch ────────────────────────────────────────────────
+function tryPlacePatch(r, c, w, h) {
+  const area = w * h;
+  if (area < 2) return; // Too small
+
+  // Check the rectangle doesn't overlap existing player patches
+  const playerGrid = buildPlayerGrid();
+  for (let dr = 0; dr < h; dr++) {
+    for (let dc = 0; dc < w; dc++) {
+      if (playerGrid[r + dr][c + dc] >= 0) {
+        showMessage('Sovrapposizione! Rimuovi prima la pezza esistente.');
+        return;
+      }
+    }
+  }
+
+  // Find which solution patches have clues inside this rectangle
+  const matchingClues = puzzle.patches.filter(p =>
+    p.clueR >= r && p.clueR < r + h &&
+    p.clueC >= c && p.clueC < c + w
+  );
+
+  // Validate: the rectangle must contain exactly one clue
+  if (matchingClues.length === 0) {
+    showMessage('Il rettangolo deve contenere un indizio.');
+    return;
+  }
+  if (matchingClues.length > 1) {
+    showMessage('Il rettangolo contiene troppi indizi.');
+    return;
+  }
+
+  const clue = matchingClues[0];
+
+  // Validate area matches
+  if (area !== clue.area) {
+    showMessage(`L'area deve essere ${clue.area}, non ${area}.`);
+    return;
+  }
+
+  // Validate shape type
+  let shapeType;
+  if (w === h) shapeType = 'square';
+  else if (w > h) shapeType = 'wide';
+  else shapeType = 'tall';
+
+  if (shapeType !== clue.shapeType) {
+    const shapeNames = {square: 'quadrato', wide: 'largo', tall: 'alto'};
+    showMessage(`La forma deve essere "${shapeNames[clue.shapeType]}", non "${shapeNames[shapeType]}".`);
+    return;
+  }
+
+  // Valid placement!
+  undoStack.push([...playerPatches.map(p => ({...p}))]);
+  playerPatches.push({r, c, w, h, patchId: clue.id});
+  messageEl.textContent = '';
+  renderBoard();
+  checkWin();
+}
+
+function buildPlayerGrid() {
+  const size = puzzle.size;
+  const grid = Array.from({length: size}, () => Array(size).fill(-1));
+  playerPatches.forEach((pp, idx) => {
+    for (let dr = 0; dr < pp.h; dr++) {
+      for (let dc = 0; dc < pp.w; dc++) {
+        grid[pp.r + dr][pp.c + dc] = idx;
+      }
+    }
+  });
+  return grid;
+}
+
+// ─── Win Check ──────────────────────────────────────────────────
+function checkWin() {
+  if (playerPatches.length !== puzzle.patches.length) return;
+
+  // Verify all cells are covered
+  const playerGrid = buildPlayerGrid();
+  for (let r = 0; r < puzzle.size; r++) {
+    for (let c = 0; c < puzzle.size; c++) {
+      if (playerGrid[r][c] < 0) return;
+    }
+  }
+
+  // Puzzle solved!
+  solved = true;
+  stopTimer();
+
+  stats.gamesPlayed++;
+  stats.gamesWon++;
+  stats.currentStreak++;
+  if (stats.currentStreak > stats.maxStreak) stats.maxStreak = stats.currentStreak;
+  stats.lastPlayed = new Date().toISOString().split('T')[0];
+
+  const key = currentSize;
+  if (!stats.bestTimes[key] || elapsed < stats.bestTimes[key]) {
+    stats.bestTimes[key] = elapsed;
+  }
+  saveStats();
+
+  modalTitle.textContent = 'Completato!';
+  modalTime.textContent = formatTime(elapsed);
+  const best = stats.bestTimes[key];
+  modalMsg.textContent = elapsed === best
+    ? 'Nuovo record! 🎉'
+    : `Miglior tempo ${currentSize}×${currentSize}: ${formatTime(best)}`;
+  overlayEl.classList.add('show');
+}
+
+// ─── Timer ──────────────────────────────────────────────────────
+function startTimer() {
+  startTime = Date.now();
+  timerInterval = setInterval(() => {
+    elapsed = Date.now() - startTime;
+    timerEl.textContent = formatTime(elapsed);
+  }, 200);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+}
+
+function formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
+// ─── Messages ───────────────────────────────────────────────────
+function showMessage(text) {
+  messageEl.textContent = text;
+  setTimeout(() => {
+    if (messageEl.textContent === text) messageEl.textContent = '';
+  }, 3000);
+}
+
+// ─── Stats Display ──────────────────────────────────────────────
+function updateStatsLine() {
+  const won = stats.gamesWon || 0;
+  const best = stats.bestTimes[currentSize];
+  statsLineEl.textContent = `Vinte: ${won}` + (best ? ` · Miglior tempo ${currentSize}×${currentSize}: ${formatTime(best)}` : '');
+}
+
+function showStatsModal() {
+  statGridEl.innerHTML = `
+    <div class="stat-item"><div class="stat-value">${stats.gamesPlayed}</div><div class="stat-label">Giocate</div></div>
+    <div class="stat-item"><div class="stat-value">${stats.gamesWon}</div><div class="stat-label">Vinte</div></div>
+    <div class="stat-item"><div class="stat-value">${stats.currentStreak}</div><div class="stat-label">Serie attuale</div></div>
+    <div class="stat-item"><div class="stat-value">${stats.maxStreak}</div><div class="stat-label">Serie massima</div></div>
+  `;
+  statsOverlayEl.classList.add('show');
+}
+
+// ─── Button handlers ────────────────────────────────────────────
+document.getElementById('btnUndo').addEventListener('click', () => {
+  if (solved || undoStack.length === 0) return;
+  playerPatches = undoStack.pop();
+  renderBoard();
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  if (solved) return;
+  if (playerPatches.length > 0) {
+    undoStack.push([...playerPatches.map(p => ({...p}))]);
+    playerPatches = [];
+    renderBoard();
+  }
+});
+
+document.getElementById('btnNext').addEventListener('click', () => {
+  newGame();
+});
+
+document.getElementById('btnStats').addEventListener('click', () => {
+  showStatsModal();
+});
+
+document.getElementById('btnCloseStats').addEventListener('click', () => {
+  statsOverlayEl.classList.remove('show');
+});
+
+statsOverlayEl.addEventListener('click', (e) => {
+  if (e.target === statsOverlayEl) statsOverlayEl.classList.remove('show');
+});
+
+overlayEl.addEventListener('click', (e) => {
+  if (e.target === overlayEl) overlayEl.classList.remove('show');
+});
+
+// ─── Init ───────────────────────────────────────────────────────
+newGame();
+</script>
+</body>
+</html>
