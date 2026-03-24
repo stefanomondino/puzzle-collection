@@ -143,6 +143,7 @@
     display: flex;
     justify-content: center;
     padding: 8px;
+    touch-action: none;
   }
 
   .board {
@@ -672,7 +673,9 @@ function renderBoard() {
 }
 
 // ─── Pointer / Touch Interaction ────────────────────────────────
-boardEl.addEventListener('pointerdown', (e) => {
+const boardContainer = document.getElementById('boardContainer');
+
+boardContainer.addEventListener('pointerdown', (e) => {
   if (solved) return;
   e.preventDefault();
   const cell = e.target.closest('.cell');
@@ -697,10 +700,10 @@ boardEl.addEventListener('pointerdown', (e) => {
   dragStart = {r, c};
   dragEnd = {r, c};
   updateSelectionHighlight();
-  boardEl.setPointerCapture(e.pointerId);
+  boardContainer.setPointerCapture(e.pointerId);
 });
 
-boardEl.addEventListener('pointermove', (e) => {
+boardContainer.addEventListener('pointermove', (e) => {
   if (!isDragging) return;
   e.preventDefault();
 
@@ -719,7 +722,7 @@ boardEl.addEventListener('pointermove', (e) => {
   }
 });
 
-boardEl.addEventListener('pointerup', (e) => {
+boardContainer.addEventListener('pointerup', (e) => {
   if (!isDragging) return;
   isDragging = false;
 
@@ -735,7 +738,7 @@ boardEl.addEventListener('pointerup', (e) => {
   tryPlacePatch(r1, c1, w, h);
 });
 
-boardEl.addEventListener('pointerleave', (e) => {
+boardContainer.addEventListener('pointerleave', (e) => {
   if (isDragging) {
     isDragging = false;
     clearSelectionHighlight();
