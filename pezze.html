@@ -207,6 +207,12 @@
     height: 42px;
   }
 
+  .cell .clue-shape.clue-circle {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+  }
+
   /* Patch colors */
   .patch-0 { background: #E8D5F5; }
   .patch-1 { background: #D5EAF5; }
@@ -358,6 +364,7 @@
     .cell .clue-shape.square { width: 28px; height: 28px; }
     .cell .clue-shape.wide { width: 36px; height: 22px; }
     .cell .clue-shape.tall { width: 22px; height: 36px; }
+    .cell .clue-shape.clue-circle { width: 28px; height: 28px; }
   }
 
   @media (max-width: 350px) {
@@ -366,6 +373,7 @@
     .cell .clue-shape.square { width: 24px; height: 24px; }
     .cell .clue-shape.wide { width: 30px; height: 18px; }
     .cell .clue-shape.tall { width: 18px; height: 30px; }
+    .cell .clue-shape.clue-circle { width: 24px; height: 24px; }
   }
 </style>
 </head>
@@ -491,6 +499,14 @@ function generatePuzzle(size, seed) {
       const clueR = r + Math.floor(rng() * pick.h);
       const clueC = c + Math.floor(rng() * pick.w);
 
+      // Decide clue type: show shape hint or just the number
+      // Squares always show shape (they're unambiguous anyway).
+      // Non-square patches: ~40% chance to hide shape hint (number only).
+      let clueType = 'shape'; // shows shape icon + number
+      if (pick.shapeType !== 'square' && rng() < 0.4) {
+        clueType = 'number'; // number only, player must deduce orientation
+      }
+
       patches.push({
         id: patchId,
         r, c,
@@ -498,6 +514,7 @@ function generatePuzzle(size, seed) {
         h: pick.h,
         area: pick.area,
         shapeType: pick.shapeType,
+        clueType,
         clueR,
         clueC
       });
@@ -655,11 +672,21 @@ function renderBoard() {
       // Check if this cell has a clue
       const clue = puzzle.patches.find(p => p.clueR === r && p.clueC === c);
       if (clue) {
-        const shapeEl = document.createElement('div');
-        shapeEl.className = `clue-shape ${clue.shapeType}`;
         const clueColorIdx = clue.id % 10;
-        shapeEl.classList.add(`patch-clue-${clueColorIdx}`);
-        cell.appendChild(shapeEl);
+
+        if (clue.clueType === 'shape') {
+          // Shape icon behind the number
+          const shapeEl = document.createElement('div');
+          shapeEl.className = `clue-shape ${clue.shapeType}`;
+          shapeEl.classList.add(`patch-clue-${clueColorIdx}`);
+          cell.appendChild(shapeEl);
+        } else {
+          // Number-only: circle background
+          const circleEl = document.createElement('div');
+          circleEl.className = 'clue-shape clue-circle';
+          circleEl.classList.add(`patch-clue-${clueColorIdx}`);
+          cell.appendChild(circleEl);
+        }
 
         const numEl = document.createElement('div');
         numEl.className = 'clue';
@@ -806,16 +833,18 @@ function tryPlacePatch(r, c, w, h) {
     return;
   }
 
-  // Validate shape type
-  let shapeType;
-  if (w === h) shapeType = 'square';
-  else if (w > h) shapeType = 'wide';
-  else shapeType = 'tall';
+  // Validate shape type (only when clue shows the shape hint)
+  if (clue.clueType === 'shape') {
+    let shapeType;
+    if (w === h) shapeType = 'square';
+    else if (w > h) shapeType = 'wide';
+    else shapeType = 'tall';
 
-  if (shapeType !== clue.shapeType) {
-    const shapeNames = {square: 'quadrato', wide: 'largo', tall: 'alto'};
-    showMessage(`La forma deve essere "${shapeNames[clue.shapeType]}", non "${shapeNames[shapeType]}".`);
-    return;
+    if (shapeType !== clue.shapeType) {
+      const shapeNames = {square: 'quadrato', wide: 'largo', tall: 'alto'};
+      showMessage(`La forma deve essere "${shapeNames[clue.shapeType]}", non "${shapeNames[shapeType]}".`);
+      return;
+    }
   }
 
   // Valid placement!
